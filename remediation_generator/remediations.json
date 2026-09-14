@@ -1,0 +1,140 @@
+{
+  "remediations": [
+    {
+      "finding_id": "F-001",
+      "original_statement": {
+        "action": "iam:PassRole",
+        "resource": "arn:aws:iam::111111111111:role/AdminRole"
+      },
+      "suggested_statement": {
+        "action": "iam:PassRole",
+        "resource": "arn:aws:iam::111111111111:role/AdminRole",
+        "condition": {
+          "StringEquals": {
+            "iam:PassedToService": "ec2.amazonaws.com"
+          }
+        }
+      },
+      "justification": "Restricts PassRole to only the designated application role and enforces ec2.amazonaws.com target service, preventing arbitrary administrative role privilege escalation."
+    },
+    {
+      "finding_id": "F-002",
+      "original_statement": {
+        "action": "iam:PassRole",
+        "resource": "*"
+      },
+      "suggested_statement": {
+        "action": "iam:PassRole",
+        "resource": "arn:aws:iam::111111111111:role/AppRole-*",
+        "condition": {
+          "StringEquals": {
+            "iam:PassedToService": "ec2.amazonaws.com"
+          }
+        }
+      },
+      "justification": "Restricts PassRole to only the designated application role and enforces ec2.amazonaws.com target service, preventing arbitrary administrative role privilege escalation."
+    },
+    {
+      "finding_id": "F-003",
+      "original_statement": {
+        "action": "iam:CreatePolicyVersion",
+        "resource": "arn:aws:iam::111111111111:policy/OpsPolicy"
+      },
+      "suggested_statement": {
+        "action": "iam:CreatePolicyVersion",
+        "resource": "arn:aws:iam::111111111111:policy/scoped-app-*",
+        "condition": {
+          "StringEquals": {
+            "aws:PrincipalTag/Environment": "Dev"
+          }
+        }
+      },
+      "justification": "Scopes policy version creation to application managed policy ARNs and requires environment tagging match, preventing administrative policy modification."
+    },
+    {
+      "finding_id": "F-004",
+      "original_statement": {
+        "action": "sts:AssumeRole",
+        "resource": "arn:aws:iam::111111111111:role/CrossAccountAdminRole"
+      },
+      "suggested_statement": {
+        "action": "sts:AssumeRole",
+        "resource": "arn:aws:iam::111111111111:role/CrossAccountAdminRole",
+        "condition": {
+          "StringEquals": {
+            "sts:ExternalId": "EnforceExternalIdCheck"
+          }
+        }
+      },
+      "justification": "Narrows AssumeRole target to explicit workload role ARNs and requires ExternalId verification to block unauthorized lateral movement."
+    },
+    {
+      "finding_id": "F-005",
+      "original_statement": {
+        "action": "sts:AssumeRole",
+        "resource": "arn:aws:iam::111111111111:role/ProdAdminRole"
+      },
+      "suggested_statement": {
+        "action": "sts:AssumeRole",
+        "resource": "arn:aws:iam::111111111111:role/ProdAdminRole",
+        "condition": {
+          "StringEquals": {
+            "sts:ExternalId": "EnforceExternalIdCheck"
+          }
+        }
+      },
+      "justification": "Narrows AssumeRole target to explicit workload role ARNs and requires ExternalId verification to block unauthorized lateral movement."
+    },
+    {
+      "finding_id": "F-006",
+      "original_statement": {
+        "action": "sts:AssumeRole",
+        "resource": "arn:aws:iam::111111111111:role/StagingRole"
+      },
+      "suggested_statement": {
+        "action": "sts:AssumeRole",
+        "resource": "arn:aws:iam::111111111111:role/ProdAdminRole",
+        "condition": {
+          "StringEquals": {
+            "sts:ExternalId": "EnforceExternalIdCheck"
+          }
+        }
+      },
+      "justification": "Narrows AssumeRole target to explicit workload role ARNs and requires ExternalId verification to block unauthorized lateral movement."
+    },
+    {
+      "finding_id": "F-007",
+      "original_statement": {
+        "action": "s3:*",
+        "resource": "*"
+      },
+      "suggested_statement": {
+        "action": [
+          "s3:GetObject",
+          "s3:PutObject",
+          "s3:ListBucket"
+        ],
+        "resource": "arn:aws:s3:::app-data-111111111111/*",
+        "condition": null
+      },
+      "justification": "Replaces wildcard s3:* grant with specific read/write operations for s3 service."
+    },
+    {
+      "finding_id": "F-008",
+      "original_statement": {
+        "action": "iam:PassRole",
+        "resource": "*"
+      },
+      "suggested_statement": {
+        "action": "iam:PassRole",
+        "resource": "arn:aws:iam::111111111111:role/AppRole-*",
+        "condition": {
+          "StringEquals": {
+            "iam:PassedToService": "ec2.amazonaws.com"
+          }
+        }
+      },
+      "justification": "Restricts PassRole to only the designated application role and enforces ec2.amazonaws.com target service, preventing arbitrary administrative role privilege escalation."
+    }
+  ]
+}

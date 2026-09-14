@@ -1,0 +1,84 @@
+{
+  "findings": [
+    {
+      "finding_id": "F-001",
+      "type": "known_pattern",
+      "pattern_name": "PassRole+RunInstances credential theft",
+      "path": [
+        "arn:aws:iam::111111111111:user/dev-alice",
+        "arn:aws:iam::111111111111:role/AdminRole"
+      ],
+      "risk_score": 87.5,
+      "risk_breakdown": {
+        "reachability": 0.9,
+        "blast_radius": 0.95,
+        "exploit_triviality": 0.85
+      },
+      "narrative": "dev-alice can become admin in 2 hops: assumes DevRole, then passes AdminRole to a new EC2 instance.",
+      "offending_statement": {
+        "policy_arn": "arn:aws:iam::111111111111:policy/DevPolicy",
+        "action": "iam:PassRole",
+        "resource": "*"
+      }
+    },
+    {
+      "finding_id": "F-002",
+      "type": "known_pattern",
+      "pattern_name": "CreatePolicyVersion self-privesc",
+      "path": [
+        "arn:aws:iam::111111111111:user/bob-contractor",
+        "arn:aws:iam::111111111111:policy/ContractorPolicy"
+      ],
+      "risk_score": 92.0,
+      "risk_breakdown": {
+        "reachability": 1.0,
+        "blast_radius": 0.95,
+        "exploit_triviality": 0.9
+      },
+      "narrative": "bob-contractor can edit ContractorPolicy to grant full admin permissions via iam:CreatePolicyVersion.",
+      "offending_statement": {
+        "policy_arn": "arn:aws:iam::111111111111:policy/ContractorPolicy",
+        "action": "iam:CreatePolicyVersion",
+        "resource": "*"
+      }
+    },
+    {
+      "finding_id": "F-003",
+      "type": "wildcard_overpermission",
+      "pattern_name": "S3 Wildcard Access",
+      "path": [
+        "arn:aws:iam::111111111111:role/AnalyticsRole"
+      ],
+      "risk_score": 65.0,
+      "risk_breakdown": {
+        "reachability": 0.7,
+        "blast_radius": 0.8,
+        "exploit_triviality": 0.6
+      },
+      "narrative": "AnalyticsRole is granted full s3:* permissions on all S3 resources (*).",
+      "offending_statement": {
+        "policy_arn": "arn:aws:iam::111111111111:policy/AnalyticsS3Policy",
+        "action": "s3:*",
+        "resource": "*"
+      }
+    },
+    {
+      "finding_id": "F-004",
+      "type": "novel_path",
+      "pattern_name": "Indirect Multi-Hop Trust Escalation",
+      "path": [
+        "arn:aws:iam::111111111111:user/charlie",
+        "arn:aws:iam::111111111111:role/IntermediateRole",
+        "arn:aws:iam::111111111111:role/SuperAdmin"
+      ],
+      "risk_score": 78.0,
+      "risk_breakdown": {
+        "reachability": 0.8,
+        "blast_radius": 0.9,
+        "exploit_triviality": 0.65
+      },
+      "narrative": "charlie reaches SuperAdmin through indirect cross-role assume chain.",
+      "offending_statement": {}
+    }
+  ]
+}
