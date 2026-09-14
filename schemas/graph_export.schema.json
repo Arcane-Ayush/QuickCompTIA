@@ -1,0 +1,94 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "graph_export.schema.json",
+  "title": "IAM Graph Export",
+  "description": "Output of Person 1 (Parser & Graph Builder). Consumed by Person 2 (Detection Engine) and Person 4 (Dashboard).",
+  "type": "object",
+  "required": ["accounts", "nodes", "edges"],
+  "additionalProperties": false,
+  "properties": {
+    "accounts": {
+      "type": "array",
+      "description": "List of AWS account IDs present in this export.",
+      "items": {"type": "string", "pattern": "^[0-9]{12}$"},
+      "minItems": 1
+    },
+    "nodes": {
+      "type": "array",
+      "description": "All IAM principals, policies, and resources as graph nodes.",
+      "items": {
+        "type": "object",
+        "required": ["id", "type", "account_id", "name", "attached_policies", "is_admin_equivalent"],
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Full ARN of the entity, or service principal URI (e.g. ec2.amazonaws.com).",
+            "minLength": 1
+          },
+          "type": {
+            "type": "string",
+            "description": "Fixed enum of node types.",
+            "enum": ["user", "role", "group", "policy", "resource"]
+          },
+          "account_id": {
+            "type": "string",
+            "description": "AWS account ID owning this node. Use 'unknown' for synthetic/external nodes.",
+            "pattern": "^([0-9]{12}|unknown|[0-9]{12}-root)$"
+          },
+          "name": {
+            "type": "string",
+            "description": "Human-readable short name (username, role name, policy name, etc.).",
+            "minLength": 1
+          },
+          "attached_policies": {
+            "type": "array",
+            "description": "ARNs of managed policies directly attached to this principal.",
+            "items": {"type": "string", "pattern": "^arn:aws:iam::"}
+          },
+          "is_admin_equivalent": {
+            "type": "boolean",
+            "description": "True if this principal's effective permissions include *:* or AdministratorAccess is attached. Pre-computed by Person 1."
+          }
+        }
+      }
+    },
+    "edges": {
+      "type": "array",
+      "description": "Directed permission edges between nodes.",
+      "items": {
+        "type": "object",
+        "required": ["source", "target", "permission", "condition", "is_wildcard_resource"],
+        "additionalProperties": false,
+        "properties": {
+          "source": {
+            "type": "string",
+            "description": "ARN or identifier of the source node (the principal gaining permission).",
+            "minLength": 1
+          },
+          "target": {
+            "type": "string",
+            "description": "ARN or identifier of the target node (the resource/role being accessed).",
+            "minLength": 1
+          },
+          "permission": {
+            "type": "string",
+            "description": "Fixed enum of edge permission types.",
+            "enum": ["sts:AssumeRole", "iam:PassRole", "policy_attachment", "group_membership"]
+          },
+          "condition": {
+            "description": "IAM condition block from the policy statement, or null if unconditional.",
+            "oneOf": [
+              {"type": "null"},
+              {"type": "object"}
+            ]
+          },
+          "is_wildcard_resource": {
+            "type": "boolean",
+            "description": "True if the source policy statement has Resource: * for this permission."
+          }
+        }
+      }
+    }
+  }
+}

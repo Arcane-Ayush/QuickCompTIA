@@ -1,0 +1,475 @@
+{
+  "accounts": [
+    "111111111111",
+    "222222222222"
+  ],
+  "nodes": [
+    {
+      "id": "arn:aws:iam::111111111111:user/dev-alice",
+      "type": "user",
+      "account_id": "111111111111",
+      "name": "dev-alice",
+      "attached_policies": [
+        "arn:aws:iam::111111111111:policy/PassRolePolicy"
+      ],
+      "is_admin_equivalent": false
+    },
+    {
+      "id": "arn:aws:iam::111111111111:user/dev-bob",
+      "type": "user",
+      "account_id": "111111111111",
+      "name": "dev-bob",
+      "attached_policies": [],
+      "is_admin_equivalent": false
+    },
+    {
+      "id": "arn:aws:iam::111111111111:user/ops-carol",
+      "type": "user",
+      "account_id": "111111111111",
+      "name": "ops-carol",
+      "attached_policies": [],
+      "is_admin_equivalent": false
+    },
+    {
+      "id": "arn:aws:iam::111111111111:user/ci-bot",
+      "type": "user",
+      "account_id": "111111111111",
+      "name": "ci-bot",
+      "attached_policies": [
+        "arn:aws:iam::111111111111:policy/CIPolicy",
+        "arn:aws:iam::111111111111:policy/CreateVersionPolicy"
+      ],
+      "is_admin_equivalent": false
+    },
+    {
+      "id": "arn:aws:iam::111111111111:user/readonly-dave",
+      "type": "user",
+      "account_id": "111111111111",
+      "name": "readonly-dave",
+      "attached_policies": [],
+      "is_admin_equivalent": false
+    },
+    {
+      "id": "arn:aws:iam::111111111111:user/ops-eve",
+      "type": "user",
+      "account_id": "111111111111",
+      "name": "ops-eve",
+      "attached_policies": [],
+      "is_admin_equivalent": false
+    },
+    {
+      "id": "arn:aws:iam::222222222222:user/external-auditor",
+      "type": "user",
+      "account_id": "222222222222",
+      "name": "external-auditor",
+      "attached_policies": [
+        "arn:aws:iam::222222222222:policy/CrossAccountPolicy"
+      ],
+      "is_admin_equivalent": false
+    },
+    {
+      "id": "arn:aws:iam::111111111111:user/svc-monitor",
+      "type": "user",
+      "account_id": "111111111111",
+      "name": "svc-monitor",
+      "attached_policies": [
+        "arn:aws:iam::111111111111:policy/ReadOnlyPolicy"
+      ],
+      "is_admin_equivalent": false
+    },
+    {
+      "id": "arn:aws:iam::111111111111:role/AdminRole",
+      "type": "role",
+      "account_id": "111111111111",
+      "name": "AdminRole",
+      "attached_policies": [
+        "arn:aws:iam::111111111111:policy/AdminPolicy"
+      ],
+      "is_admin_equivalent": true
+    },
+    {
+      "id": "arn:aws:iam::111111111111:role/DevRole",
+      "type": "role",
+      "account_id": "111111111111",
+      "name": "DevRole",
+      "attached_policies": [
+        "arn:aws:iam::111111111111:policy/DevPolicy"
+      ],
+      "is_admin_equivalent": false
+    },
+    {
+      "id": "arn:aws:iam::111111111111:role/OpsRole",
+      "type": "role",
+      "account_id": "111111111111",
+      "name": "OpsRole",
+      "attached_policies": [
+        "arn:aws:iam::111111111111:policy/OpsPolicy"
+      ],
+      "is_admin_equivalent": false
+    },
+    {
+      "id": "arn:aws:iam::111111111111:role/EC2InstanceRole",
+      "type": "role",
+      "account_id": "111111111111",
+      "name": "EC2InstanceRole",
+      "attached_policies": [
+        "arn:aws:iam::111111111111:policy/AdminPolicy"
+      ],
+      "is_admin_equivalent": true
+    },
+    {
+      "id": "arn:aws:iam::111111111111:role/CrossAccountRole",
+      "type": "role",
+      "account_id": "111111111111",
+      "name": "CrossAccountRole",
+      "attached_policies": [
+        "arn:aws:iam::111111111111:policy/AdminPolicy"
+      ],
+      "is_admin_equivalent": true
+    },
+    {
+      "id": "arn:aws:iam::111111111111:role/CIServiceRole",
+      "type": "role",
+      "account_id": "111111111111",
+      "name": "CIServiceRole",
+      "attached_policies": [
+        "arn:aws:iam::111111111111:policy/CIPolicy"
+      ],
+      "is_admin_equivalent": false
+    },
+    {
+      "id": "arn:aws:iam::111111111111:group/dev-group",
+      "type": "group",
+      "account_id": "111111111111",
+      "name": "dev-group",
+      "attached_policies": [
+        "arn:aws:iam::111111111111:policy/DevPolicy"
+      ],
+      "is_admin_equivalent": false
+    },
+    {
+      "id": "arn:aws:iam::111111111111:group/ops-group",
+      "type": "group",
+      "account_id": "111111111111",
+      "name": "ops-group",
+      "attached_policies": [
+        "arn:aws:iam::111111111111:policy/OpsPolicy"
+      ],
+      "is_admin_equivalent": false
+    },
+    {
+      "id": "arn:aws:iam::111111111111:group/readonly-group",
+      "type": "group",
+      "account_id": "111111111111",
+      "name": "readonly-group",
+      "attached_policies": [
+        "arn:aws:iam::111111111111:policy/ReadOnlyPolicy"
+      ],
+      "is_admin_equivalent": false
+    },
+    {
+      "id": "arn:aws:iam::111111111111:policy/AdminPolicy",
+      "type": "policy",
+      "account_id": "111111111111",
+      "name": "AdminPolicy",
+      "attached_policies": [],
+      "is_admin_equivalent": false
+    },
+    {
+      "id": "arn:aws:iam::111111111111:policy/DevPolicy",
+      "type": "policy",
+      "account_id": "111111111111",
+      "name": "DevPolicy",
+      "attached_policies": [],
+      "is_admin_equivalent": false
+    },
+    {
+      "id": "arn:aws:iam::111111111111:policy/PassRolePolicy",
+      "type": "policy",
+      "account_id": "111111111111",
+      "name": "PassRolePolicy",
+      "attached_policies": [],
+      "is_admin_equivalent": false
+    },
+    {
+      "id": "arn:aws:iam::111111111111:policy/OpsPolicy",
+      "type": "policy",
+      "account_id": "111111111111",
+      "name": "OpsPolicy",
+      "attached_policies": [],
+      "is_admin_equivalent": false
+    },
+    {
+      "id": "arn:aws:iam::111111111111:policy/ReadOnlyPolicy",
+      "type": "policy",
+      "account_id": "111111111111",
+      "name": "ReadOnlyPolicy",
+      "attached_policies": [],
+      "is_admin_equivalent": false
+    },
+    {
+      "id": "arn:aws:iam::111111111111:policy/CIPolicy",
+      "type": "policy",
+      "account_id": "111111111111",
+      "name": "CIPolicy",
+      "attached_policies": [],
+      "is_admin_equivalent": false
+    },
+    {
+      "id": "arn:aws:iam::111111111111:policy/CreateVersionPolicy",
+      "type": "policy",
+      "account_id": "111111111111",
+      "name": "CreateVersionPolicy",
+      "attached_policies": [],
+      "is_admin_equivalent": false
+    },
+    {
+      "id": "arn:aws:iam::222222222222:policy/CrossAccountPolicy",
+      "type": "policy",
+      "account_id": "222222222222",
+      "name": "CrossAccountPolicy",
+      "attached_policies": [],
+      "is_admin_equivalent": false
+    },
+    {
+      "id": "ec2.amazonaws.com",
+      "type": "resource",
+      "account_id": "unknown",
+      "name": "ec2.amazonaws.com",
+      "attached_policies": [],
+      "is_admin_equivalent": false
+    },
+    {
+      "id": "arn:aws:iam::222222222222:root",
+      "type": "resource",
+      "account_id": "222222222222",
+      "name": "root",
+      "attached_policies": [],
+      "is_admin_equivalent": false
+    },
+    {
+      "id": "arn:aws:iam::*:resource/wildcard",
+      "type": "resource",
+      "account_id": "unknown",
+      "name": "arn:aws:iam::*:resource/wildcard",
+      "attached_policies": [],
+      "is_admin_equivalent": false
+    }
+  ],
+  "edges": [
+    {
+      "source": "arn:aws:iam::111111111111:user/dev-alice",
+      "target": "arn:aws:iam::111111111111:group/dev-group",
+      "permission": "group_membership",
+      "condition": null,
+      "is_wildcard_resource": false
+    },
+    {
+      "source": "arn:aws:iam::111111111111:user/dev-alice",
+      "target": "arn:aws:iam::111111111111:policy/PassRolePolicy",
+      "permission": "policy_attachment",
+      "condition": null,
+      "is_wildcard_resource": false
+    },
+    {
+      "source": "arn:aws:iam::111111111111:user/dev-alice",
+      "target": "arn:aws:iam::111111111111:role/DevRole",
+      "permission": "sts:AssumeRole",
+      "condition": null,
+      "is_wildcard_resource": false
+    },
+    {
+      "source": "arn:aws:iam::111111111111:user/dev-alice",
+      "target": "arn:aws:iam::*:resource/wildcard",
+      "permission": "iam:PassRole",
+      "condition": null,
+      "is_wildcard_resource": true
+    },
+    {
+      "source": "arn:aws:iam::111111111111:user/dev-bob",
+      "target": "arn:aws:iam::111111111111:group/dev-group",
+      "permission": "group_membership",
+      "condition": null,
+      "is_wildcard_resource": false
+    },
+    {
+      "source": "arn:aws:iam::111111111111:user/dev-bob",
+      "target": "arn:aws:iam::111111111111:role/DevRole",
+      "permission": "sts:AssumeRole",
+      "condition": null,
+      "is_wildcard_resource": false
+    },
+    {
+      "source": "arn:aws:iam::111111111111:user/ops-carol",
+      "target": "arn:aws:iam::111111111111:group/ops-group",
+      "permission": "group_membership",
+      "condition": null,
+      "is_wildcard_resource": false
+    },
+    {
+      "source": "arn:aws:iam::111111111111:user/ci-bot",
+      "target": "arn:aws:iam::111111111111:policy/CIPolicy",
+      "permission": "policy_attachment",
+      "condition": null,
+      "is_wildcard_resource": false
+    },
+    {
+      "source": "arn:aws:iam::111111111111:user/ci-bot",
+      "target": "arn:aws:iam::111111111111:policy/CreateVersionPolicy",
+      "permission": "policy_attachment",
+      "condition": null,
+      "is_wildcard_resource": false
+    },
+    {
+      "source": "arn:aws:iam::111111111111:user/ci-bot",
+      "target": "arn:aws:iam::111111111111:role/CIServiceRole",
+      "permission": "sts:AssumeRole",
+      "condition": null,
+      "is_wildcard_resource": false
+    },
+    {
+      "source": "arn:aws:iam::111111111111:user/readonly-dave",
+      "target": "arn:aws:iam::111111111111:group/readonly-group",
+      "permission": "group_membership",
+      "condition": null,
+      "is_wildcard_resource": false
+    },
+    {
+      "source": "arn:aws:iam::111111111111:user/ops-eve",
+      "target": "arn:aws:iam::111111111111:group/ops-group",
+      "permission": "group_membership",
+      "condition": null,
+      "is_wildcard_resource": false
+    },
+    {
+      "source": "arn:aws:iam::222222222222:user/external-auditor",
+      "target": "arn:aws:iam::222222222222:policy/CrossAccountPolicy",
+      "permission": "policy_attachment",
+      "condition": null,
+      "is_wildcard_resource": false
+    },
+    {
+      "source": "arn:aws:iam::111111111111:user/svc-monitor",
+      "target": "arn:aws:iam::111111111111:policy/ReadOnlyPolicy",
+      "permission": "policy_attachment",
+      "condition": null,
+      "is_wildcard_resource": false
+    },
+    {
+      "source": "arn:aws:iam::111111111111:role/AdminRole",
+      "target": "arn:aws:iam::111111111111:policy/AdminPolicy",
+      "permission": "policy_attachment",
+      "condition": null,
+      "is_wildcard_resource": false
+    },
+    {
+      "source": "arn:aws:iam::111111111111:role/AdminRole",
+      "target": "arn:aws:iam::*:resource/wildcard",
+      "permission": "iam:PassRole",
+      "condition": null,
+      "is_wildcard_resource": true
+    },
+    {
+      "source": "arn:aws:iam::111111111111:role/DevRole",
+      "target": "arn:aws:iam::111111111111:policy/DevPolicy",
+      "permission": "policy_attachment",
+      "condition": null,
+      "is_wildcard_resource": false
+    },
+    {
+      "source": "arn:aws:iam::111111111111:role/DevRole",
+      "target": "arn:aws:iam::111111111111:role/AdminRole",
+      "permission": "sts:AssumeRole",
+      "condition": null,
+      "is_wildcard_resource": false
+    },
+    {
+      "source": "arn:aws:iam::111111111111:role/OpsRole",
+      "target": "arn:aws:iam::111111111111:policy/OpsPolicy",
+      "permission": "policy_attachment",
+      "condition": null,
+      "is_wildcard_resource": false
+    },
+    {
+      "source": "arn:aws:iam::111111111111:role/EC2InstanceRole",
+      "target": "arn:aws:iam::111111111111:policy/AdminPolicy",
+      "permission": "policy_attachment",
+      "condition": null,
+      "is_wildcard_resource": false
+    },
+    {
+      "source": "arn:aws:iam::111111111111:role/EC2InstanceRole",
+      "target": "arn:aws:iam::*:resource/wildcard",
+      "permission": "iam:PassRole",
+      "condition": null,
+      "is_wildcard_resource": true
+    },
+    {
+      "source": "arn:aws:iam::111111111111:role/CrossAccountRole",
+      "target": "arn:aws:iam::111111111111:policy/AdminPolicy",
+      "permission": "policy_attachment",
+      "condition": null,
+      "is_wildcard_resource": false
+    },
+    {
+      "source": "arn:aws:iam::111111111111:role/CrossAccountRole",
+      "target": "arn:aws:iam::*:resource/wildcard",
+      "permission": "iam:PassRole",
+      "condition": null,
+      "is_wildcard_resource": true
+    },
+    {
+      "source": "arn:aws:iam::111111111111:role/CIServiceRole",
+      "target": "arn:aws:iam::111111111111:policy/CIPolicy",
+      "permission": "policy_attachment",
+      "condition": null,
+      "is_wildcard_resource": false
+    },
+    {
+      "source": "arn:aws:iam::111111111111:group/dev-group",
+      "target": "arn:aws:iam::111111111111:policy/DevPolicy",
+      "permission": "policy_attachment",
+      "condition": null,
+      "is_wildcard_resource": false
+    },
+    {
+      "source": "arn:aws:iam::111111111111:group/ops-group",
+      "target": "arn:aws:iam::111111111111:policy/OpsPolicy",
+      "permission": "policy_attachment",
+      "condition": null,
+      "is_wildcard_resource": false
+    },
+    {
+      "source": "arn:aws:iam::111111111111:group/ops-group",
+      "target": "arn:aws:iam::111111111111:role/OpsRole",
+      "permission": "sts:AssumeRole",
+      "condition": null,
+      "is_wildcard_resource": false
+    },
+    {
+      "source": "arn:aws:iam::111111111111:group/readonly-group",
+      "target": "arn:aws:iam::111111111111:policy/ReadOnlyPolicy",
+      "permission": "policy_attachment",
+      "condition": null,
+      "is_wildcard_resource": false
+    },
+    {
+      "source": "ec2.amazonaws.com",
+      "target": "arn:aws:iam::111111111111:role/EC2InstanceRole",
+      "permission": "sts:AssumeRole",
+      "condition": null,
+      "is_wildcard_resource": false
+    },
+    {
+      "source": "arn:aws:iam::222222222222:root",
+      "target": "arn:aws:iam::111111111111:role/CrossAccountRole",
+      "permission": "sts:AssumeRole",
+      "condition": {
+        "StringEquals": {
+          "sts:ExternalId": "audit-ext-12345"
+        }
+      },
+      "is_wildcard_resource": false
+    }
+  ]
+}

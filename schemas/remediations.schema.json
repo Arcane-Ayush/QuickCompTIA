@@ -1,0 +1,73 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "remediations.schema.json",
+  "title": "Remediation Generator Output",
+  "description": "Output of Person 3 (Least-Privilege Remediation Generator). Consumed by Person 4 (Dashboard). Authored by Person 1 as v1 per Section 2 contract.",
+  "type": "object",
+  "required": ["remediations"],
+  "additionalProperties": false,
+  "properties": {
+    "remediations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["finding_id"],
+        "additionalProperties": false,
+        "properties": {
+          "finding_id": {
+            "type": "string",
+            "description": "References the finding_id from findings.json that this remediation addresses.",
+            "pattern": "^F-[0-9]+"
+          },
+          "remediable": {
+            "type": "boolean",
+            "description": "False for novel_path findings that cannot be auto-remediated. Omit or set true for remediable findings."
+          },
+          "not_remediable_reason": {
+            "type": "string",
+            "description": "Required when remediable is false. Explains why auto-remediation is not possible."
+          },
+          "original_statement": {
+            "type": "object",
+            "description": "The original over-permissive policy statement being replaced.",
+            "required": ["action", "resource"],
+            "additionalProperties": true,
+            "properties": {
+              "action": {"type": "string"},
+              "resource": {"type": "string"}
+            }
+          },
+          "suggested_statement": {
+            "type": "object",
+            "description": "The minimal-privilege replacement statement.",
+            "required": ["action", "resource"],
+            "additionalProperties": true,
+            "properties": {
+              "action": {"type": "string"},
+              "resource": {"type": "string"},
+              "condition": {
+                "oneOf": [{"type": "null"}, {"type": "object"}]
+              }
+            }
+          },
+          "justification": {
+            "type": "string",
+            "description": "One-sentence explanation of what risk this remediation closes.",
+            "minLength": 10
+          }
+        },
+        "if": {
+          "properties": {"remediable": {"const": false}},
+          "required": ["remediable"]
+        },
+        "then": {
+          "required": ["finding_id", "remediable", "not_remediable_reason"]
+        },
+        "else": {
+          "required": ["finding_id", "original_statement", "suggested_statement", "justification"]
+        }
+      }
+    }
+  }
+}
+

@@ -1,0 +1,76 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "findings.schema.json",
+  "title": "Detection Engine Findings",
+  "description": "Output of Person 2 (Detection Engine). Consumed by Person 3 (Remediation Generator) and Person 4 (Dashboard). Authored by Person 1 as v1 per Section 2 contract.",
+  "type": "object",
+  "required": ["findings"],
+  "additionalProperties": false,
+  "properties": {
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["finding_id", "type", "pattern_name", "path", "risk_score", "risk_breakdown", "narrative", "offending_statement"],
+        "additionalProperties": false,
+        "properties": {
+          "finding_id": {
+            "type": "string",
+            "description": "Stable unique ID for this finding. Person 3 and Person 4 reference findings by this ID.",
+            "pattern": "^F-[0-9]+"
+          },
+          "type": {
+            "type": "string",
+            "enum": ["known_pattern", "novel_path", "wildcard_overpermission"],
+            "description": "Finding classification per Section 2.2."
+          },
+          "pattern_name": {
+            "type": "string",
+            "description": "Human-readable name of the detected escalation pattern or rule.",
+            "minLength": 1
+          },
+          "path": {
+            "type": "array",
+            "description": "Ordered list of ARNs forming the privilege escalation path, from least to most privileged.",
+            "items": {"type": "string"},
+            "minItems": 1
+          },
+          "risk_score": {
+            "type": "number",
+            "description": "Composite risk score 0–100. Must always be accompanied by risk_breakdown.",
+            "minimum": 0,
+            "maximum": 100
+          },
+          "risk_breakdown": {
+            "type": "object",
+            "description": "3-factor breakdown making the score explainable. Score = Reachability × Blast_radius × Exploit_triviality (normalized to 0–100).",
+            "required": ["reachability", "blast_radius", "exploit_triviality"],
+            "additionalProperties": false,
+            "properties": {
+              "reachability": {"type": "number", "minimum": 0, "maximum": 1},
+              "blast_radius": {"type": "number", "minimum": 0, "maximum": 1},
+              "exploit_triviality": {"type": "number", "minimum": 0, "maximum": 1}
+            }
+          },
+          "narrative": {
+            "type": "string",
+            "description": "Plain-English attack story for this finding.",
+            "minLength": 10
+          },
+          "offending_statement": {
+            "type": "object",
+            "description": "The specific policy statement that enables or contributes to this finding.",
+            "required": ["policy_arn", "action", "resource"],
+            "additionalProperties": false,
+            "properties": {
+              "policy_arn": {"type": "string"},
+              "action": {"type": "string"},
+              "resource": {"type": "string"}
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
