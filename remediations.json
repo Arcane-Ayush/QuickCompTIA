@@ -1,0 +1,174 @@
+{
+  "remediations": [
+    {
+      "finding_id": "F-001",
+      "original_statement": {
+        "action": "iam:PassRole",
+        "resource": "*"
+      },
+      "suggested_statement": {
+        "action": "iam:PassRole",
+        "resource": "arn:aws:iam::111111111111:role/AppRole-*",
+        "condition": {
+          "StringEquals": {
+            "iam:PassedToService": "ec2.amazonaws.com"
+          }
+        }
+      },
+      "justification": "Restricts PassRole to only the designated application role and enforces ec2.amazonaws.com target service, preventing arbitrary administrative role privilege escalation."
+    },
+    {
+      "finding_id": "F-002",
+      "original_statement": {
+        "action": "sts:AssumeRole",
+        "resource": "arn:aws:iam::111111111111:role/AdminRole"
+      },
+      "suggested_statement": {
+        "action": "sts:AssumeRole",
+        "resource": "arn:aws:iam::111111111111:role/AdminRole",
+        "condition": {
+          "StringEquals": {
+            "sts:ExternalId": "EnforceExternalIdCheck"
+          }
+        }
+      },
+      "justification": "Narrows AssumeRole target to explicit workload role ARNs and requires ExternalId verification to block unauthorized lateral movement."
+    },
+    {
+      "finding_id": "F-003",
+      "original_statement": {
+        "action": "sts:AssumeRole",
+        "resource": "arn:aws:iam::111111111111:role/EC2InstanceRole"
+      },
+      "suggested_statement": {
+        "action": "sts:AssumeRole",
+        "resource": "arn:aws:iam::111111111111:role/EC2InstanceRole",
+        "condition": {
+          "StringEquals": {
+            "sts:ExternalId": "EnforceExternalIdCheck"
+          }
+        }
+      },
+      "justification": "Narrows AssumeRole target to explicit workload role ARNs and requires ExternalId verification to block unauthorized lateral movement."
+    },
+    {
+      "finding_id": "F-004",
+      "original_statement": {
+        "action": "sts:AssumeRole",
+        "resource": "arn:aws:iam::111111111111:role/CrossAccountRole"
+      },
+      "suggested_statement": {
+        "action": "sts:AssumeRole",
+        "resource": "arn:aws:iam::111111111111:role/CrossAccountRole",
+        "condition": {
+          "StringEquals": {
+            "sts:ExternalId": "EnforceExternalIdCheck"
+          }
+        }
+      },
+      "justification": "Narrows AssumeRole target to explicit workload role ARNs and requires ExternalId verification to block unauthorized lateral movement."
+    },
+    {
+      "finding_id": "F-005",
+      "original_statement": {
+        "action": "sts:AssumeRole",
+        "resource": "arn:aws:iam::111111111111:role/DevRole"
+      },
+      "suggested_statement": {
+        "action": "sts:AssumeRole",
+        "resource": "arn:aws:iam::111111111111:role/AdminRole",
+        "condition": {
+          "StringEquals": {
+            "sts:ExternalId": "EnforceExternalIdCheck"
+          }
+        }
+      },
+      "justification": "Narrows AssumeRole target to explicit workload role ARNs and requires ExternalId verification to block unauthorized lateral movement."
+    },
+    {
+      "finding_id": "F-006",
+      "original_statement": {
+        "action": "sts:AssumeRole",
+        "resource": "arn:aws:iam::111111111111:role/DevRole"
+      },
+      "suggested_statement": {
+        "action": "sts:AssumeRole",
+        "resource": "arn:aws:iam::111111111111:role/AdminRole",
+        "condition": {
+          "StringEquals": {
+            "sts:ExternalId": "EnforceExternalIdCheck"
+          }
+        }
+      },
+      "justification": "Narrows AssumeRole target to explicit workload role ARNs and requires ExternalId verification to block unauthorized lateral movement."
+    },
+    {
+      "finding_id": "F-007",
+      "original_statement": {
+        "action": "iam:PassRole",
+        "resource": "*"
+      },
+      "suggested_statement": {
+        "action": "iam:PassRole",
+        "resource": "arn:aws:iam::111111111111:role/AppRole-*",
+        "condition": {
+          "StringEquals": {
+            "iam:PassedToService": "ec2.amazonaws.com"
+          }
+        }
+      },
+      "justification": "Restricts PassRole to only the designated application role and enforces ec2.amazonaws.com target service, preventing arbitrary administrative role privilege escalation."
+    },
+    {
+      "finding_id": "F-008",
+      "original_statement": {
+        "action": "iam:PassRole",
+        "resource": "*"
+      },
+      "suggested_statement": {
+        "action": "iam:PassRole",
+        "resource": "arn:aws:iam::111111111111:role/AppRole-*",
+        "condition": {
+          "StringEquals": {
+            "iam:PassedToService": "ec2.amazonaws.com"
+          }
+        }
+      },
+      "justification": "Restricts PassRole to only the designated application role and enforces ec2.amazonaws.com target service, preventing arbitrary administrative role privilege escalation."
+    },
+    {
+      "finding_id": "F-009",
+      "original_statement": {
+        "action": "iam:PassRole",
+        "resource": "*"
+      },
+      "suggested_statement": {
+        "action": "iam:PassRole",
+        "resource": "arn:aws:iam::111111111111:role/AppRole-*",
+        "condition": {
+          "StringEquals": {
+            "iam:PassedToService": "ec2.amazonaws.com"
+          }
+        }
+      },
+      "justification": "Restricts PassRole to only the designated application role and enforces ec2.amazonaws.com target service, preventing arbitrary administrative role privilege escalation."
+    },
+    {
+      "finding_id": "F-010",
+      "original_statement": {
+        "action": "iam:PassRole",
+        "resource": "*"
+      },
+      "suggested_statement": {
+        "action": "iam:PassRole",
+        "resource": "arn:aws:iam::111111111111:role/AppRole-*",
+        "condition": {
+          "StringEquals": {
+            "iam:PassedToService": "ec2.amazonaws.com"
+          }
+        }
+      },
+      "justification": "Restricts PassRole to only the designated application role and enforces ec2.amazonaws.com target service, preventing arbitrary administrative role privilege escalation."
+    }
+  ]
+}

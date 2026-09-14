@@ -1,0 +1,212 @@
+{
+  "findings": [
+    {
+      "finding_id": "F-001",
+      "type": "known_pattern",
+      "pattern_name": "PassRole+RunInstances credential theft",
+      "path": [
+        "arn:aws:iam::111111111111:user/dev-alice",
+        "arn:aws:iam::*:resource/wildcard"
+      ],
+      "risk_score": 59.8,
+      "risk_breakdown": {
+        "reachability": 0.9,
+        "blast_radius": 0.95,
+        "exploit_triviality": 0.7
+      },
+      "narrative": "dev-alice can become admin in 2 hops: assumes or passes privileged role arn:aws:iam::*:resource/wildcard to a compute instance (EC2) to extract admin credentials.",
+      "offending_statement": {
+        "policy_arn": "arn:aws:iam::111111111111:policy/PassRolePolicy",
+        "action": "iam:PassRole",
+        "resource": "*"
+      }
+    },
+    {
+      "finding_id": "F-002",
+      "type": "known_pattern",
+      "pattern_name": "sts:AssumeRole trust pivot",
+      "path": [
+        "arn:aws:iam::111111111111:role/DevRole",
+        "arn:aws:iam::111111111111:role/AdminRole"
+      ],
+      "risk_score": 76.9,
+      "risk_breakdown": {
+        "reachability": 0.92,
+        "blast_radius": 0.95,
+        "exploit_triviality": 0.88
+      },
+      "narrative": "DevRole can assume admin-equivalent role AdminRole directly via STS AssumeRole.",
+      "offending_statement": {
+        "policy_arn": "arn:aws:iam::111111111111:policy/DevPolicy",
+        "action": "sts:AssumeRole",
+        "resource": "arn:aws:iam::111111111111:role/AdminRole"
+      }
+    },
+    {
+      "finding_id": "F-003",
+      "type": "known_pattern",
+      "pattern_name": "sts:AssumeRole trust pivot",
+      "path": [
+        "ec2.amazonaws.com",
+        "arn:aws:iam::111111111111:role/EC2InstanceRole"
+      ],
+      "risk_score": 76.9,
+      "risk_breakdown": {
+        "reachability": 0.92,
+        "blast_radius": 0.95,
+        "exploit_triviality": 0.88
+      },
+      "narrative": "ec2.amazonaws.com can assume admin-equivalent role EC2InstanceRole directly via STS AssumeRole.",
+      "offending_statement": {
+        "policy_arn": "arn:aws:iam::unknown:policy/EscalationPolicy",
+        "action": "sts:AssumeRole",
+        "resource": "arn:aws:iam::111111111111:role/EC2InstanceRole"
+      }
+    },
+    {
+      "finding_id": "F-004",
+      "type": "known_pattern",
+      "pattern_name": "sts:AssumeRole trust pivot",
+      "path": [
+        "arn:aws:iam::222222222222:root",
+        "arn:aws:iam::111111111111:role/CrossAccountRole"
+      ],
+      "risk_score": 63.8,
+      "risk_breakdown": {
+        "reachability": 0.92,
+        "blast_radius": 0.95,
+        "exploit_triviality": 0.73
+      },
+      "narrative": "root can assume admin-equivalent role CrossAccountRole directly via STS AssumeRole.",
+      "offending_statement": {
+        "policy_arn": "arn:aws:iam::222222222222:policy/EscalationPolicy",
+        "action": "sts:AssumeRole",
+        "resource": "arn:aws:iam::111111111111:role/CrossAccountRole"
+      }
+    },
+    {
+      "finding_id": "F-005",
+      "type": "novel_path",
+      "pattern_name": "Novel multi-hop escalation path to AdminRole",
+      "path": [
+        "arn:aws:iam::111111111111:user/dev-alice",
+        "arn:aws:iam::111111111111:role/DevRole",
+        "arn:aws:iam::111111111111:role/AdminRole"
+      ],
+      "risk_score": 60.6,
+      "risk_breakdown": {
+        "reachability": 0.85,
+        "blast_radius": 0.95,
+        "exploit_triviality": 0.75
+      },
+      "narrative": "dev-alice can become admin in 2 hop(s): dev-alice uses sts:AssumeRole on DevRole, then DevRole uses sts:AssumeRole on AdminRole.",
+      "offending_statement": {
+        "policy_arn": "arn:aws:iam::111111111111:policy/PassRolePolicy",
+        "action": "sts:AssumeRole",
+        "resource": "arn:aws:iam::111111111111:role/DevRole"
+      }
+    },
+    {
+      "finding_id": "F-006",
+      "type": "novel_path",
+      "pattern_name": "Novel multi-hop escalation path to AdminRole",
+      "path": [
+        "arn:aws:iam::111111111111:user/dev-bob",
+        "arn:aws:iam::111111111111:role/DevRole",
+        "arn:aws:iam::111111111111:role/AdminRole"
+      ],
+      "risk_score": 60.6,
+      "risk_breakdown": {
+        "reachability": 0.85,
+        "blast_radius": 0.95,
+        "exploit_triviality": 0.75
+      },
+      "narrative": "dev-bob can become admin in 2 hop(s): dev-bob uses sts:AssumeRole on DevRole, then DevRole uses sts:AssumeRole on AdminRole.",
+      "offending_statement": {
+        "policy_arn": "arn:aws:iam::111111111111:policy/TraversalPolicy",
+        "action": "sts:AssumeRole",
+        "resource": "arn:aws:iam::111111111111:role/DevRole"
+      }
+    },
+    {
+      "finding_id": "F-007",
+      "type": "wildcard_overpermission",
+      "pattern_name": "Unrestricted Wildcard Resource on Critical Action (iam:PassRole)",
+      "path": [
+        "arn:aws:iam::111111111111:user/dev-alice"
+      ],
+      "risk_score": 72.7,
+      "risk_breakdown": {
+        "reachability": 0.9,
+        "blast_radius": 0.95,
+        "exploit_triviality": 0.85
+      },
+      "narrative": "dev-alice is granted unrestricted permission 'iam:PassRole' on '*' via policy PassRolePolicy, violating the principle of least privilege.",
+      "offending_statement": {
+        "policy_arn": "arn:aws:iam::111111111111:policy/PassRolePolicy",
+        "action": "iam:PassRole",
+        "resource": "*"
+      }
+    },
+    {
+      "finding_id": "F-008",
+      "type": "wildcard_overpermission",
+      "pattern_name": "Unrestricted Wildcard Resource on Critical Action (iam:PassRole)",
+      "path": [
+        "arn:aws:iam::111111111111:role/AdminRole"
+      ],
+      "risk_score": 72.7,
+      "risk_breakdown": {
+        "reachability": 0.9,
+        "blast_radius": 0.95,
+        "exploit_triviality": 0.85
+      },
+      "narrative": "AdminRole is granted unrestricted permission 'iam:PassRole' on '*' via policy AdminPolicy, violating the principle of least privilege.",
+      "offending_statement": {
+        "policy_arn": "arn:aws:iam::111111111111:policy/AdminPolicy",
+        "action": "iam:PassRole",
+        "resource": "*"
+      }
+    },
+    {
+      "finding_id": "F-009",
+      "type": "wildcard_overpermission",
+      "pattern_name": "Unrestricted Wildcard Resource on Critical Action (iam:PassRole)",
+      "path": [
+        "arn:aws:iam::111111111111:role/EC2InstanceRole"
+      ],
+      "risk_score": 72.7,
+      "risk_breakdown": {
+        "reachability": 0.9,
+        "blast_radius": 0.95,
+        "exploit_triviality": 0.85
+      },
+      "narrative": "EC2InstanceRole is granted unrestricted permission 'iam:PassRole' on '*' via policy AdminPolicy, violating the principle of least privilege.",
+      "offending_statement": {
+        "policy_arn": "arn:aws:iam::111111111111:policy/AdminPolicy",
+        "action": "iam:PassRole",
+        "resource": "*"
+      }
+    },
+    {
+      "finding_id": "F-010",
+      "type": "wildcard_overpermission",
+      "pattern_name": "Unrestricted Wildcard Resource on Critical Action (iam:PassRole)",
+      "path": [
+        "arn:aws:iam::111111111111:role/CrossAccountRole"
+      ],
+      "risk_score": 72.7,
+      "risk_breakdown": {
+        "reachability": 0.9,
+        "blast_radius": 0.95,
+        "exploit_triviality": 0.85
+      },
+      "narrative": "CrossAccountRole is granted unrestricted permission 'iam:PassRole' on '*' via policy AdminPolicy, violating the principle of least privilege.",
+      "offending_statement": {
+        "policy_arn": "arn:aws:iam::111111111111:policy/AdminPolicy",
+        "action": "iam:PassRole",
+        "resource": "*"
+      }
+    }
+  ]
+}
