@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cloud IAM Misconfiguration Detector — Interactive Dashboard</title>
+  <link rel="stylesheet" href="styles.css">
+  <script type="text/javascript" src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
+</head>
+<body>
+  <header>
+    <div class="logo-container">
+      <div class="logo-icon">IAM</div>
+      <div>
+        <h1 class="logo-title">Cloud IAM Misconfiguration Detector</h1>
+        <p style="font-size: 0.75rem; color: var(--text-secondary);">4-Stage Graph-Based Privilege Escalation Analysis</p>
+      </div>
+    </div>
+    <div class="header-controls">
+      <button class="btn" id="refresh-btn">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+        Re-Scan / Refresh
+      </button>
+      <button class="btn btn-primary" id="download-all-btn">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+        Export All Remediations
+      </button>
+    </div>
+  </header>
+
+  <main class="container">
+    <!-- Metrics Section -->
+    <section class="metrics-grid">
+      <div class="metric-card critical">
+        <div class="metric-header">Critical Risk Escalations</div>
+        <div class="metric-value" id="metric-critical">0</div>
+        <div class="metric-sub">Risk score ≥ 80.0</div>
+      </div>
+      <div class="metric-card high">
+        <div class="metric-header">High Risk Paths</div>
+        <div class="metric-value" id="metric-high">0</div>
+        <div class="metric-sub">Risk score 60.0 – 79.9</div>
+      </div>
+      <div class="metric-card medium">
+        <div class="metric-header">Wildcard Grants</div>
+        <div class="metric-value" id="metric-wildcards">0</div>
+        <div class="metric-sub">Resource: "*" or Service:*</div>
+      </div>
+      <div class="metric-card low">
+        <div class="metric-header">Total Principals Analyzed</div>
+        <div class="metric-value" id="metric-nodes">0</div>
+        <div class="metric-sub" id="metric-edges-count">0 Graph Edges Evaluated</div>
+      </div>
+    </section>
+
+    <!-- Main View: Graph + Findings Scorecard -->
+    <section class="main-layout">
+      <div class="panel">
+        <div class="panel-header">
+          <h2 class="panel-title">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+            Interactive Privilege Graph Visualization
+          </h2>
+          <span style="font-size: 0.8rem; color: var(--text-secondary);" id="graph-status">Click nodes or paths to inspect</span>
+        </div>
+        <div id="vis-graph"></div>
+        <div class="graph-legend">
+          <div class="legend-item"><div class="legend-color" style="background: #ef4444;"></div> Admin Equivalent</div>
+          <div class="legend-item"><div class="legend-color" style="background: #38bdf8;"></div> IAM User</div>
+          <div class="legend-item"><div class="legend-color" style="background: #a855f7;"></div> IAM Role</div>
+          <div class="legend-item"><div class="legend-color" style="background: #10b981;"></div> Policy / Group</div>
+        </div>
+      </div>
+
+      <!-- Scorecards -->
+      <div class="panel">
+        <div class="panel-header">
+          <h2 class="panel-title">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+            Explainable Risk Scorecards
+          </h2>
+          <span style="font-size: 0.8rem; color: var(--text-muted);" id="finding-count-label">0 Findings</span>
+        </div>
+        <div class="findings-container" id="findings-list">
+          <div style="padding: 2rem; text-align: center; color: var(--text-muted);">Loading detection findings...</div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Slide-Over Drawer for Finding Detail & Remediation -->
+  <div class="modal-overlay" id="drawer-overlay">
+    <div class="drawer">
+      <div class="drawer-header">
+        <div>
+          <span class="finding-id" id="drawer-finding-id">F-001</span>
+          <h2 style="font-size: 1.2rem; margin-top: 0.25rem; color: #fff;" id="drawer-title">Finding Detail</h2>
+        </div>
+        <button class="close-btn" id="close-drawer">&times;</button>
+      </div>
+      <div class="drawer-body">
+        <div>
+          <h3 style="font-size: 0.85rem; text-transform: uppercase; color: var(--text-secondary); margin-bottom: 0.5rem;">Attack Path Narrative</h3>
+          <div class="narrative-box" id="drawer-narrative">
+            Attack explanation will appear here...
+          </div>
+        </div>
+
+        <div>
+          <h3 style="font-size: 0.85rem; text-transform: uppercase; color: var(--text-secondary); margin-bottom: 0.5rem;">Risk Breakdown (Formula: Reachability × Blast Radius × Exploit Triviality)</h3>
+          <div class="breakdown-grid" style="background: rgba(30, 41, 59, 0.4); padding: 1rem; border-radius: 10px;" id="drawer-breakdown">
+          </div>
+        </div>
+
+        <div>
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+            <h3 style="font-size: 0.85rem; text-transform: uppercase; color: var(--text-secondary);">Least-Privilege Auto-Fix Diff</h3>
+            <button class="btn btn-primary" id="download-policy-btn" style="padding: 0.4rem 0.8rem; font-size: 0.75rem;">
+              Download Fixed Policy JSON
+            </button>
+          </div>
+          
+          <div class="diff-grid">
+            <div>
+              <div style="font-size: 0.75rem; color: var(--risk-critical); margin-bottom: 0.25rem; font-weight: 700;">Offending Statement</div>
+              <pre class="code-block" id="drawer-original-json">Loading...</pre>
+            </div>
+            <div>
+              <div style="font-size: 0.75rem; color: var(--risk-low); margin-bottom: 0.25rem; font-weight: 700;">Suggested Replacement Statement</div>
+              <pre class="code-block" id="drawer-suggested-json">Loading...</pre>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <h3 style="font-size: 0.85rem; text-transform: uppercase; color: var(--text-secondary); margin-bottom: 0.5rem;">Remediation Justification</h3>
+          <div style="background: rgba(16, 185, 129, 0.08); border-left: 4px solid var(--risk-low); padding: 1rem; border-radius: 0 8px 8px 0; font-size: 0.9rem;" id="drawer-justification">
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
