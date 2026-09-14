@@ -1,0 +1,171 @@
+{
+  "findings": [
+    {
+      "finding_id": "F-001",
+      "type": "known_pattern",
+      "pattern_name": "PassRole+RunInstances credential theft",
+      "path": [
+        "arn:aws:iam::111111111111:user/dev-alice",
+        "arn:aws:iam::111111111111:role/AdminRole"
+      ],
+      "risk_score": 72.7,
+      "risk_breakdown": {
+        "reachability": 0.9,
+        "blast_radius": 0.95,
+        "exploit_triviality": 0.85
+      },
+      "narrative": "dev-alice can become admin in 2 hops: assumes or passes privileged role AdminRole to a compute instance (EC2) to extract admin credentials.",
+      "offending_statement": {
+        "policy_arn": "arn:aws:iam::111111111111:policy/DevEC2Policy",
+        "action": "iam:PassRole",
+        "resource": "arn:aws:iam::111111111111:role/AdminRole"
+      }
+    },
+    {
+      "finding_id": "F-002",
+      "type": "known_pattern",
+      "pattern_name": "PassRole+RunInstances credential theft",
+      "path": [
+        "arn:aws:iam::111111111111:user/intern-dave",
+        "*"
+      ],
+      "risk_score": 59.8,
+      "risk_breakdown": {
+        "reachability": 0.9,
+        "blast_radius": 0.95,
+        "exploit_triviality": 0.7
+      },
+      "narrative": "intern-dave can become admin in 2 hops: assumes or passes privileged role * to a compute instance (EC2) to extract admin credentials.",
+      "offending_statement": {
+        "policy_arn": "arn:aws:iam::111111111111:policy/BroadWildcardPolicy",
+        "action": "iam:PassRole",
+        "resource": "*"
+      }
+    },
+    {
+      "finding_id": "F-003",
+      "type": "known_pattern",
+      "pattern_name": "CreatePolicyVersion privilege escalation",
+      "path": [
+        "arn:aws:iam::111111111111:user/ops-bob",
+        "arn:aws:iam::111111111111:policy/OpsPolicy"
+      ],
+      "risk_score": 85.5,
+      "risk_breakdown": {
+        "reachability": 0.95,
+        "blast_radius": 1.0,
+        "exploit_triviality": 0.9
+      },
+      "narrative": "ops-bob can directly grant itself administrative access by creating an unrestricted version on policy OpsPolicy.",
+      "offending_statement": {
+        "policy_arn": "arn:aws:iam::111111111111:policy/OpsPolicy",
+        "action": "iam:CreatePolicyVersion",
+        "resource": "arn:aws:iam::111111111111:policy/OpsPolicy"
+      }
+    },
+    {
+      "finding_id": "F-004",
+      "type": "known_pattern",
+      "pattern_name": "sts:AssumeRole trust pivot",
+      "path": [
+        "arn:aws:iam::222222222222:user/contractor-charlie",
+        "arn:aws:iam::111111111111:role/CrossAccountAdminRole"
+      ],
+      "risk_score": 76.9,
+      "risk_breakdown": {
+        "reachability": 0.92,
+        "blast_radius": 0.95,
+        "exploit_triviality": 0.88
+      },
+      "narrative": "contractor-charlie can assume admin-equivalent role CrossAccountAdminRole directly via STS AssumeRole.",
+      "offending_statement": {
+        "policy_arn": "arn:aws:iam::222222222222:policy/ContractorAssumePolicy",
+        "action": "sts:AssumeRole",
+        "resource": "arn:aws:iam::111111111111:role/CrossAccountAdminRole"
+      }
+    },
+    {
+      "finding_id": "F-005",
+      "type": "known_pattern",
+      "pattern_name": "sts:AssumeRole trust pivot",
+      "path": [
+        "arn:aws:iam::111111111111:role/StagingRole",
+        "arn:aws:iam::111111111111:role/ProdAdminRole"
+      ],
+      "risk_score": 76.9,
+      "risk_breakdown": {
+        "reachability": 0.92,
+        "blast_radius": 0.95,
+        "exploit_triviality": 0.88
+      },
+      "narrative": "StagingRole can assume admin-equivalent role ProdAdminRole directly via STS AssumeRole.",
+      "offending_statement": {
+        "policy_arn": "arn:aws:iam::111111111111:policy/StagingPolicy",
+        "action": "sts:AssumeRole",
+        "resource": "arn:aws:iam::111111111111:role/ProdAdminRole"
+      }
+    },
+    {
+      "finding_id": "F-006",
+      "type": "novel_path",
+      "pattern_name": "Novel multi-hop escalation path to ProdAdminRole",
+      "path": [
+        "arn:aws:iam::111111111111:user/analyst-eve",
+        "arn:aws:iam::111111111111:role/StagingRole",
+        "arn:aws:iam::111111111111:role/ProdAdminRole"
+      ],
+      "risk_score": 60.6,
+      "risk_breakdown": {
+        "reachability": 0.85,
+        "blast_radius": 0.95,
+        "exploit_triviality": 0.75
+      },
+      "narrative": "analyst-eve can become admin in 2 hop(s): analyst-eve uses sts:AssumeRole on StagingRole, then StagingRole uses sts:AssumeRole on ProdAdminRole.",
+      "offending_statement": {
+        "policy_arn": "arn:aws:iam::111111111111:policy/AnalystPolicy",
+        "action": "sts:AssumeRole",
+        "resource": "arn:aws:iam::111111111111:role/StagingRole"
+      }
+    },
+    {
+      "finding_id": "F-007",
+      "type": "wildcard_overpermission",
+      "pattern_name": "Service-Wide Wildcard Action (s3:*)",
+      "path": [
+        "arn:aws:iam::111111111111:user/intern-dave"
+      ],
+      "risk_score": 54.4,
+      "risk_breakdown": {
+        "reachability": 0.85,
+        "blast_radius": 0.8,
+        "exploit_triviality": 0.8
+      },
+      "narrative": "intern-dave is granted unrestricted permission 's3:*' on '*' via policy BroadWildcardPolicy, violating the principle of least privilege.",
+      "offending_statement": {
+        "policy_arn": "arn:aws:iam::111111111111:policy/BroadWildcardPolicy",
+        "action": "s3:*",
+        "resource": "*"
+      }
+    },
+    {
+      "finding_id": "F-008",
+      "type": "wildcard_overpermission",
+      "pattern_name": "Unrestricted Wildcard Resource on Critical Action (iam:PassRole)",
+      "path": [
+        "arn:aws:iam::111111111111:user/intern-dave"
+      ],
+      "risk_score": 72.7,
+      "risk_breakdown": {
+        "reachability": 0.9,
+        "blast_radius": 0.95,
+        "exploit_triviality": 0.85
+      },
+      "narrative": "intern-dave is granted unrestricted permission 'iam:PassRole' on '*' via policy BroadWildcardPolicy, violating the principle of least privilege.",
+      "offending_statement": {
+        "policy_arn": "arn:aws:iam::111111111111:policy/BroadWildcardPolicy",
+        "action": "iam:PassRole",
+        "resource": "*"
+      }
+    }
+  ]
+}
