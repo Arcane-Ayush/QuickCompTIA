@@ -1,0 +1,143 @@
+{
+  "accounts": ["111111111111", "222222222222"],
+  "nodes": [
+    {
+      "id": "arn:aws:iam::111111111111:user/dev-alice",
+      "type": "user",
+      "account_id": "111111111111",
+      "name": "dev-alice",
+      "attached_policies": ["arn:aws:iam::111111111111:policy/DevEC2Policy"],
+      "is_admin_equivalent": false
+    },
+    {
+      "id": "arn:aws:iam::111111111111:role/AdminRole",
+      "type": "role",
+      "account_id": "111111111111",
+      "name": "AdminRole",
+      "attached_policies": ["arn:aws:iam::aws:policy/AdministratorAccess"],
+      "is_admin_equivalent": true
+    },
+    {
+      "id": "arn:aws:iam::111111111111:user/ops-bob",
+      "type": "user",
+      "account_id": "111111111111",
+      "name": "ops-bob",
+      "attached_policies": ["arn:aws:iam::111111111111:policy/OpsPolicy"],
+      "is_admin_equivalent": false
+    },
+    {
+      "id": "arn:aws:iam::111111111111:policy/OpsPolicy",
+      "type": "policy",
+      "account_id": "111111111111",
+      "name": "OpsPolicy",
+      "attached_policies": [],
+      "is_admin_equivalent": false
+    },
+    {
+      "id": "arn:aws:iam::222222222222:user/contractor-charlie",
+      "type": "user",
+      "account_id": "222222222222",
+      "name": "contractor-charlie",
+      "attached_policies": ["arn:aws:iam::222222222222:policy/ContractorAssumePolicy"],
+      "is_admin_equivalent": false
+    },
+    {
+      "id": "arn:aws:iam::111111111111:role/CrossAccountAdminRole",
+      "type": "role",
+      "account_id": "111111111111",
+      "name": "CrossAccountAdminRole",
+      "attached_policies": ["arn:aws:iam::aws:policy/AdministratorAccess"],
+      "is_admin_equivalent": true
+    },
+    {
+      "id": "arn:aws:iam::111111111111:user/intern-dave",
+      "type": "user",
+      "account_id": "111111111111",
+      "name": "intern-dave",
+      "attached_policies": ["arn:aws:iam::111111111111:policy/BroadWildcardPolicy"],
+      "is_admin_equivalent": false
+    },
+    {
+      "id": "arn:aws:iam::111111111111:user/analyst-eve",
+      "type": "user",
+      "account_id": "111111111111",
+      "name": "analyst-eve",
+      "attached_policies": ["arn:aws:iam::111111111111:policy/AnalystPolicy"],
+      "is_admin_equivalent": false
+    },
+    {
+      "id": "arn:aws:iam::111111111111:role/StagingRole",
+      "type": "role",
+      "account_id": "111111111111",
+      "name": "StagingRole",
+      "attached_policies": ["arn:aws:iam::111111111111:policy/StagingPolicy"],
+      "is_admin_equivalent": false
+    },
+    {
+      "id": "arn:aws:iam::111111111111:role/ProdAdminRole",
+      "type": "role",
+      "account_id": "111111111111",
+      "name": "ProdAdminRole",
+      "attached_policies": ["arn:aws:iam::aws:policy/AdministratorAccess"],
+      "is_admin_equivalent": true
+    }
+  ],
+  "edges": [
+    {
+      "source": "arn:aws:iam::111111111111:user/dev-alice",
+      "target": "arn:aws:iam::111111111111:role/AdminRole",
+      "permission": "iam:PassRole",
+      "condition": null,
+      "is_wildcard_resource": false
+    },
+    {
+      "source": "arn:aws:iam::111111111111:user/dev-alice",
+      "target": "arn:aws:ec2:us-east-1:111111111111:instance/*",
+      "permission": "ec2:RunInstances",
+      "condition": null,
+      "is_wildcard_resource": false
+    },
+    {
+      "source": "arn:aws:iam::111111111111:user/ops-bob",
+      "target": "arn:aws:iam::111111111111:policy/OpsPolicy",
+      "permission": "iam:CreatePolicyVersion",
+      "condition": null,
+      "is_wildcard_resource": false
+    },
+    {
+      "source": "arn:aws:iam::222222222222:user/contractor-charlie",
+      "target": "arn:aws:iam::111111111111:role/CrossAccountAdminRole",
+      "permission": "sts:AssumeRole",
+      "condition": null,
+      "is_wildcard_resource": false
+    },
+    {
+      "source": "arn:aws:iam::111111111111:user/intern-dave",
+      "target": "*",
+      "permission": "s3:*",
+      "condition": null,
+      "is_wildcard_resource": true
+    },
+    {
+      "source": "arn:aws:iam::111111111111:user/intern-dave",
+      "target": "*",
+      "permission": "iam:PassRole",
+      "condition": null,
+      "is_wildcard_resource": true
+    },
+    {
+      "source": "arn:aws:iam::111111111111:user/analyst-eve",
+      "target": "arn:aws:iam::111111111111:role/StagingRole",
+      "permission": "sts:AssumeRole",
+      "condition": null,
+      "is_wildcard_resource": false
+    },
+    {
+      "source": "arn:aws:iam::111111111111:role/StagingRole",
+      "target": "arn:aws:iam::111111111111:role/ProdAdminRole",
+      "permission": "sts:AssumeRole",
+      "condition": null,
+      "is_wildcard_resource": false
+    }
+  ]
+}

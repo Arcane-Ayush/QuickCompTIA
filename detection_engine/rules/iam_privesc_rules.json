@@ -1,0 +1,121 @@
+{
+  "rules": [
+    {
+      "rule_id": "RULE-PASSRUN",
+      "pattern_name": "PassRole+RunInstances credential theft",
+      "category": "privilege_escalation",
+      "reference": "Rhino Security Labs / Bishop Fox IAM Vulnerable",
+      "required_permissions": [
+        "iam:PassRole",
+        "ec2:RunInstances"
+      ],
+      "target_node_types": ["role"],
+      "requires_admin_target": true,
+      "base_reachability": 0.90,
+      "base_blast_radius": 0.95,
+      "base_exploit_triviality": 0.85,
+      "description": "Principal has permission to pass an IAM role to an EC2 instance and launch instances, allowing credential extraction via instance metadata.",
+      "narrative_template": "{source} can become admin in {hops} hops: passes {target} to a new compute instance and extracts credentials."
+    },
+    {
+      "rule_id": "RULE-POLICYVER",
+      "pattern_name": "CreatePolicyVersion privilege escalation",
+      "category": "privilege_escalation",
+      "reference": "Rhino Security Labs - IAM Privilege Escalation Vector #1",
+      "required_permissions": [
+        "iam:CreatePolicyVersion"
+      ],
+      "target_node_types": ["policy"],
+      "requires_admin_target": false,
+      "base_reachability": 0.95,
+      "base_blast_radius": 1.00,
+      "base_exploit_triviality": 0.90,
+      "description": "Principal has iam:CreatePolicyVersion, permitting creation of a new default policy version with unrestricted administrator privileges.",
+      "narrative_template": "{source} can directly grant itself administrative access by creating an unrestricted version on policy {target}."
+    },
+    {
+      "rule_id": "RULE-SETDEFVER",
+      "pattern_name": "SetDefaultPolicyVersion privilege escalation",
+      "category": "privilege_escalation",
+      "reference": "Rhino Security Labs - IAM Privilege Escalation Vector #2",
+      "required_permissions": [
+        "iam:SetDefaultPolicyVersion"
+      ],
+      "target_node_types": ["policy"],
+      "requires_admin_target": false,
+      "base_reachability": 0.85,
+      "base_blast_radius": 0.90,
+      "base_exploit_triviality": 0.80,
+      "description": "Principal can switch default version of an attached customer-managed policy to an existing version with higher privileges.",
+      "narrative_template": "{source} can switch policy {target} default version to an existing version possessing higher permissions."
+    },
+    {
+      "rule_id": "RULE-ATTACHPOL",
+      "pattern_name": "AttachUserPolicy/AttachRolePolicy privilege escalation",
+      "category": "privilege_escalation",
+      "reference": "Rhino Security Labs - IAM Privilege Escalation Vector #4 & #5",
+      "required_permissions": [
+        "iam:AttachUserPolicy",
+        "iam:AttachRolePolicy",
+        "iam:AttachGroupPolicy"
+      ],
+      "target_node_types": ["user", "role", "group"],
+      "requires_admin_target": false,
+      "base_reachability": 0.95,
+      "base_blast_radius": 1.00,
+      "base_exploit_triviality": 0.95,
+      "description": "Principal can attach AdministratorAccess or other highly privileged managed policies directly to itself or a controlled principal.",
+      "narrative_template": "{source} can attach the AdministratorAccess policy to {target} to achieve full administrative control."
+    },
+    {
+      "rule_id": "RULE-PUTPOL",
+      "pattern_name": "PutUserPolicy/PutRolePolicy inline policy injection",
+      "category": "privilege_escalation",
+      "reference": "Rhino Security Labs - IAM Privilege Escalation Vector #6 & #7",
+      "required_permissions": [
+        "iam:PutUserPolicy",
+        "iam:PutRolePolicy",
+        "iam:PutGroupPolicy"
+      ],
+      "target_node_types": ["user", "role", "group"],
+      "requires_admin_target": false,
+      "base_reachability": 0.95,
+      "base_blast_radius": 1.00,
+      "base_exploit_triviality": 0.95,
+      "description": "Principal can create or update inline policies, allowing injection of an Allow *:* statement.",
+      "narrative_template": "{source} can inject an inline administrator policy into {target}, escalating privileges immediately."
+    },
+    {
+      "rule_id": "RULE-CREATEKEY",
+      "pattern_name": "CreateAccessKey privilege escalation",
+      "category": "privilege_escalation",
+      "reference": "Rhino Security Labs - IAM Privilege Escalation Vector #3",
+      "required_permissions": [
+        "iam:CreateAccessKey"
+      ],
+      "target_node_types": ["user"],
+      "requires_admin_target": true,
+      "base_reachability": 0.90,
+      "base_blast_radius": 0.95,
+      "base_exploit_triviality": 0.85,
+      "description": "Principal can generate an access key for an administrator user, allowing direct assumption of their administrative session.",
+      "narrative_template": "{source} can create active access keys for admin-equivalent user {target} and impersonate them."
+    },
+    {
+      "rule_id": "RULE-ASSUMEROLE",
+      "pattern_name": "sts:AssumeRole trust pivot",
+      "category": "lateral_movement_privesc",
+      "reference": "Bishop Fox IAM Vulnerable & AWS IAM Trust Relationships",
+      "required_permissions": [
+        "sts:AssumeRole"
+      ],
+      "target_node_types": ["role"],
+      "requires_admin_target": true,
+      "base_reachability": 0.92,
+      "base_blast_radius": 0.95,
+      "base_exploit_triviality": 0.88,
+      "description": "Principal has trust permission to assume an admin-equivalent role directly or via lateral role pivot.",
+      "narrative_template": "{source} can assume admin-equivalent role {target} directly via STS AssumeRole."
+    }
+  ]
+}
