@@ -1,0 +1,37 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Remediations",
+  "type": "object",
+  "required": ["remediations"],
+  "properties": {
+    "remediations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["finding_id", "justification"],
+        "properties": {
+          "finding_id": { "type": "string" },
+          "remediable": { "type": "boolean" },
+          "original_statement": {
+            "type": "object",
+            "required": ["action", "resource"],
+            "properties": {
+              "action": { "type": "string" },
+              "resource": { "type": "string" }
+            }
+          },
+          "suggested_statement": {
+            "type": "object",
+            "required": ["action", "resource"],
+            "properties": {
+              "action": { "type": "string" },
+              "resource": { "type": "string" },
+              "condition": { "type": ["object", "null"] }
+            }
+          },
+          "justification": { "type": "string" }
+        }
+      }
+    }
+  }
+}

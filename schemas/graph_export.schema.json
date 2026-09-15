@@ -1,0 +1,50 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "GraphExport",
+  "type": "object",
+  "required": ["accounts", "nodes", "edges"],
+  "properties": {
+    "accounts": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "nodes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "type", "account_id", "name", "attached_policies", "is_admin_equivalent"],
+        "properties": {
+          "id": { "type": "string" },
+          "type": {
+            "type": "string",
+            "enum": ["user", "role", "group", "policy", "resource"]
+          },
+          "account_id": { "type": "string" },
+          "name": { "type": "string" },
+          "attached_policies": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "is_admin_equivalent": { "type": "boolean" }
+        }
+      }
+    },
+    "edges": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["source", "target", "permission", "is_wildcard_resource"],
+        "properties": {
+          "source": { "type": "string" },
+          "target": { "type": "string" },
+          "permission": {
+            "type": "string",
+            "enum": ["sts:AssumeRole", "iam:PassRole", "policy_attachment", "group_membership"]
+          },
+          "condition": { "type": ["object", "null"] },
+          "is_wildcard_resource": { "type": "boolean" }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,60 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Findings",
+  "type": "object",
+  "required": ["findings"],
+  "properties": {
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "finding_id",
+          "type",
+          "pattern_name",
+          "path",
+          "risk_score",
+          "risk_breakdown",
+          "narrative",
+          "offending_statement"
+        ],
+        "properties": {
+          "finding_id": { "type": "string" },
+          "type": {
+            "type": "string",
+            "enum": ["known_pattern", "novel_path", "wildcard_overpermission"]
+          },
+          "pattern_name": { "type": "string" },
+          "path": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "risk_score": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 100
+          },
+          "risk_breakdown": {
+            "type": "object",
+            "required": ["reachability", "blast_radius", "exploit_triviality"],
+            "properties": {
+              "reachability": { "type": "number", "minimum": 0, "maximum": 1 },
+              "blast_radius": { "type": "number", "minimum": 0, "maximum": 1 },
+              "exploit_triviality": { "type": "number", "minimum": 0, "maximum": 1 }
+            }
+          },
+          "narrative": { "type": "string" },
+          "offending_statement": {
+            "type": "object",
+            "required": ["policy_arn", "action", "resource"],
+            "properties": {
+              "policy_arn": { "type": "string" },
+              "action": { "type": "string" },
+              "resource": { "type": "string" }
+            }
+          }
+        }
+      }
+    }
+  }
+}
