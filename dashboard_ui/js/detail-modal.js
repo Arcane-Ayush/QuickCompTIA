@@ -61,7 +61,7 @@ const DetailModal = (function () {
     const drawer = document.querySelector('.detail-drawer');
     const body = document.querySelector('.detail-drawer-body');
 
-    if (!overlay || !drawer || !body) {
+    if (!drawer || !body) {
       console.error('Detail modal DOM elements not found');
       return;
     }
@@ -74,126 +74,107 @@ const DetailModal = (function () {
 
     // --- Risk score header ---
     html += `
-      <div class="detail-section">
-        <div style="display:flex;align-items:center;gap:var(--space-md);flex-wrap:wrap;">
-          <span class="risk-score-number ${severity}" style="font-size:2.2rem;">${finding.risk_score.toFixed(1)}</span>
-          <span class="type-badge ${esc(finding.type)}" style="font-size:0.72rem;">${esc(formatType(finding.type))}</span>
-          <span style="color:var(--text-tertiary);font-family:var(--font-mono);font-size:0.72rem;">${esc(finding.finding_id)}</span>
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;">
+          <span style="font-family:var(--font-mono);font-size:0.75rem;font-weight:700;color:var(--text-muted);">${esc(finding.finding_id)}</span>
+          <span class="type-pill ${esc(finding.type)}">${esc(formatType(finding.type))}</span>
         </div>
-        <div class="risk-breakdown" style="max-width:360px;">
-          <div class="breakdown-item">
-            <span class="breakdown-label">Reachability</span>
-            <div class="breakdown-bar-track">
-              <div class="breakdown-bar-fill" style="width:${(rb.reachability || 0) * 100}%;"></div>
-            </div>
-            <span class="breakdown-value">${((rb.reachability || 0) * 100).toFixed(0)}%</span>
-          </div>
-          <div class="breakdown-item">
-            <span class="breakdown-label">Blast Radius</span>
-            <div class="breakdown-bar-track">
-              <div class="breakdown-bar-fill" style="width:${(rb.blast_radius || 0) * 100}%;"></div>
-            </div>
-            <span class="breakdown-value">${((rb.blast_radius || 0) * 100).toFixed(0)}%</span>
-          </div>
-          <div class="breakdown-item">
-            <span class="breakdown-label">Exploit Triviality</span>
-            <div class="breakdown-bar-track">
-              <div class="breakdown-bar-fill" style="width:${(rb.exploit_triviality || 0) * 100}%;"></div>
-            </div>
-            <span class="breakdown-value">${((rb.exploit_triviality || 0) * 100).toFixed(0)}%</span>
-          </div>
+        <h2 style="font-size:1.35rem;font-weight:800;letter-spacing:-0.02em;color:var(--text-display);line-height:1.25;">
+          ${esc(finding.pattern_name)}
+        </h2>
+        <div style="display:flex;align-items:baseline;gap:6px;margin-top:4px;">
+          <span class="score-big ${severity}" style="font-size:2.4rem;">${finding.risk_score.toFixed(1)}</span>
+          <span style="color:var(--text-muted);font-weight:600;font-size:0.85rem;">/ 100 Risk Score</span>
         </div>
       </div>
     `;
 
-    // --- Narrative ---
+    // --- 3-Factor Breakdown Row ---
     html += `
-      <div class="detail-section">
-        <span class="detail-section-label">Attack Narrative</span>
-        <div class="detail-narrative">${esc(finding.narrative)}</div>
+      <div class="breakdown-3col" style="padding:14px;background:#f8fafc;border-radius:var(--radius-inner);border:1px solid #e2e8f0;">
+        <div class="breakdown-unit">
+          <span class="breakdown-header-lbl">Reachability</span>
+          <div class="breakdown-track">
+            <div class="breakdown-bar" style="width:${(rb.reachability || 0) * 100}%;"></div>
+          </div>
+          <span class="breakdown-num">${((rb.reachability || 0) * 100).toFixed(0)}%</span>
+        </div>
+        <div class="breakdown-unit">
+          <span class="breakdown-header-lbl">Blast Radius</span>
+          <div class="breakdown-track">
+            <div class="breakdown-bar" style="width:${(rb.blast_radius || 0) * 100}%;"></div>
+          </div>
+          <span class="breakdown-num">${((rb.blast_radius || 0) * 100).toFixed(0)}%</span>
+        </div>
+        <div class="breakdown-unit">
+          <span class="breakdown-header-lbl">Exploit Triviality</span>
+          <div class="breakdown-track">
+            <div class="breakdown-bar" style="width:${(rb.exploit_triviality || 0) * 100}%;"></div>
+          </div>
+          <span class="breakdown-num">${((rb.exploit_triviality || 0) * 100).toFixed(0)}%</span>
+        </div>
       </div>
     `;
 
-    // --- Attack Path ---
+    // --- Narrative in Pastel Callout Box ---
+    html += `
+      <div>
+        <div style="font-size:0.72rem;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-muted);margin-bottom:8px;">Attack Narrative</div>
+        <div class="narrative-pastel-callout">${esc(finding.narrative)}</div>
+      </div>
+    `;
+
+    // --- Escalation Path ---
     if (finding.path && finding.path.length > 0) {
       html += `
-        <div class="detail-section">
-          <span class="detail-section-label">Escalation Path (${finding.path.length} hops)</span>
-          <div class="attack-path">
+        <div>
+          <div style="font-size:0.72rem;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-muted);margin-bottom:8px;">
+            Escalation Path (${finding.path.length} hops)
+          </div>
+          <div style="display:flex;flex-direction:column;gap:6px;padding:12px 16px;background:#f8fafc;border-radius:var(--radius-inner);border:1px solid #e2e8f0;font-family:var(--font-mono);font-size:0.72rem;">
       `;
       finding.path.forEach((arn, idx) => {
         html += `
-          <div class="attack-path-step">
-            <div class="path-step-dot"></div>
-            <div>
-              <span class="path-step-arn">${esc(arn)}</span>
-            </div>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span style="width:8px;height:8px;border-radius:50%;background:var(--btn-charcoal);flex-shrink:0;"></span>
+            <span style="word-break:break-all;color:var(--text-display);font-weight:600;">${esc(arn)}</span>
           </div>
         `;
         if (idx < finding.path.length - 1) {
-          html += `<div class="path-step-arrow">↓</div>`;
+          html += `<div style="padding-left:14px;color:var(--text-muted);font-size:10px;">↓</div>`;
         }
       });
       html += `</div></div>`;
     }
 
-    // --- Offending Statement ---
-    if (finding.offending_statement) {
-      const os = finding.offending_statement;
-      html += `
-        <div class="detail-section">
-          <span class="detail-section-label">Offending Policy Statement</span>
-          <div class="offending-block">
-            <div><span class="key">Policy:</span> <span class="value">${esc(os.policy_arn)}</span></div>
-            <div><span class="key">Action:</span> <span class="value">${esc(os.action)}</span></div>
-            <div><span class="key">Resource:</span> <span class="value">${esc(os.resource)}</span></div>
-          </div>
-        </div>
-      `;
-    }
-
-    // --- Remediation ---
-    html += `<div class="detail-section">`;
-    html += `<span class="detail-section-label">Remediation</span>`;
+    // --- Remediation Section ---
+    html += `<div>`;
+    html += `<div style="font-size:0.72rem;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-muted);margin-bottom:8px;">Remediation Policy</div>`;
 
     if (remediation && remediation.remediable === false) {
-      // Not remediable
       html += `
-        <div class="not-remediable-banner">
-          <span>⚠</span>
-          <div>
-            <strong>Not auto-remediable</strong><br>
-            ${esc(remediation.justification)}
-          </div>
+        <div class="justification-pastel-box" style="background:#fef2f2;border-color:#fecaca;color:#991b1b;">
+          <strong>⚠ Architectural Review Required</strong><br>
+          ${esc(remediation.justification)}
         </div>
       `;
     } else if (remediation && remediation.suggested_statement) {
-      // Has a fix
       html += `
-        <div class="remediation-container">
-          <div class="remediation-comparison">
-            <div class="remediation-side">
-              <span class="remediation-side-label original">✗ Current (Overpermissioned)</span>
-              <div class="remediation-code original">${esc(prettyJson(remediation.original_statement))}</div>
-            </div>
-            <div class="remediation-side">
-              <span class="remediation-side-label suggested">✓ Suggested (Least Privilege)</span>
-              <div class="remediation-code suggested">${esc(prettyJson(remediation.suggested_statement))}</div>
-            </div>
+        <div style="display:flex;flex-direction:column;gap:12px;">
+          <div class="code-preview-card">
+            <div class="code-preview-header">✓ Suggested Least-Privilege Statement</div>
+            <pre>${esc(prettyJson(remediation.suggested_statement))}</pre>
           </div>
-          <div class="remediation-justification">${esc(remediation.justification)}</div>
-          <button class="download-btn" id="download-fix-btn" data-finding-id="${esc(finding.finding_id)}">
+          <div class="justification-pastel-box">
+            ${esc(remediation.justification)}
+          </div>
+          <button class="pill-btn pill-btn-dark" id="download-fix-btn" data-finding-id="${esc(finding.finding_id)}" style="width:100%;justify-content:center;padding:12px 24px;">
             ⬇ Download Fixed Policy
           </button>
         </div>
       `;
     } else {
-      html += `
-        <div class="not-remediable-banner">
-          <span>ℹ</span>
-          <div>No remediation available for this finding.</div>
-        </div>
-      `;
+      html += `<div class="justification-pastel-box">No remediation needed for this finding.</div>`;
     }
 
     html += `</div>`;
@@ -201,12 +182,8 @@ const DetailModal = (function () {
     // Set content
     body.innerHTML = html;
 
-    // Update drawer title
-    const titleEl = document.querySelector('.detail-drawer-title');
-    if (titleEl) titleEl.textContent = finding.pattern_name || finding.finding_id;
-
     // Open drawer
-    overlay.classList.add('open');
+    if (overlay) overlay.classList.add('open');
     drawer.classList.add('open');
     isOpen = true;
 
@@ -289,7 +266,9 @@ const DetailModal = (function () {
     }
 
     // Close on close button
-    const closeBtn = document.querySelector('.detail-close-btn');
+    const closeBtn = document.querySelector('.detail-close-btn') || 
+                     document.querySelector('#btn-close-drawer') || 
+                     document.querySelector('.drawer-close-circle');
     if (closeBtn) {
       closeBtn.addEventListener('click', closeDrawer);
     }

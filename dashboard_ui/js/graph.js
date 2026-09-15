@@ -414,6 +414,17 @@ const GraphRenderer = (function () {
       wheelSensitivity: 0.3,
     });
 
+    // Auto-fit and resize once loaded and layout completes
+    cyInstance.ready(() => {
+      cyInstance.resize();
+      cyInstance.fit(null, 30);
+    });
+
+    cyInstance.on('layoutstop', () => {
+      cyInstance.resize();
+      cyInstance.fit(null, 30);
+    });
+
     // Node click handler — highlights related findings
     cyInstance.on('tap', 'node', function (evt) {
       const node = evt.target;

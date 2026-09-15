@@ -62,9 +62,12 @@ const App = (function () {
 
   /** Updates the file input row UI to show loaded state. */
   function markFileLoaded(inputId) {
-    const row = document.querySelector(`#${inputId}`).closest('.file-input-row');
-    const label = row.querySelector('.file-input-label');
-    if (row) row.classList.add('loaded');
+    const input = document.querySelector(`#${inputId}`);
+    if (!input) return;
+    const row = input.closest('.file-input-row') || input.parentElement;
+    if (!row) return;
+    row.classList.add('loaded');
+    const label = row.querySelector('.file-input-label') || row.querySelector('label');
     if (label) {
       label.textContent = '✓ Loaded';
       label.classList.add('loaded');
@@ -115,54 +118,27 @@ const App = (function () {
     return stats;
   }
 
-  /** Renders the stats bar with computed values. */
+  /** Renders the stats bar with computed values matching reference big metric numbers. */
   function renderStatsBar(stats) {
     const statsEl = document.querySelector('.stats-bar');
     if (!statsEl) return;
 
     statsEl.innerHTML = `
-      <div class="stat-item">
-        <div>
-          <div class="stat-value" style="color:var(--text-primary);">${stats.totalNodes}</div>
-          <div class="stat-label">Principals</div>
-        </div>
+      <div class="metric-item">
+        <div class="metric-big-number">${stats.totalNodes}</div>
+        <div class="metric-label-two-line">Unique Principals<br>& Resources</div>
       </div>
-      <div class="stat-divider"></div>
-      <div class="stat-item">
-        <div>
-          <div class="stat-value" style="color:var(--text-primary);">${stats.totalEdges}</div>
-          <div class="stat-label">Relationships</div>
-        </div>
+      <div class="metric-item">
+        <div class="metric-big-number">${stats.totalEdges}</div>
+        <div class="metric-label-two-line">Discovered IAM<br>Relationships</div>
       </div>
-      <div class="stat-divider"></div>
-      <div class="stat-item">
-        <div class="severity-dot critical"></div>
-        <div>
-          <div class="stat-value" style="color:var(--risk-critical);">${stats.criticalCount}</div>
-          <div class="stat-label">Critical</div>
-        </div>
+      <div class="metric-item">
+        <div class="metric-big-number" style="color:#c2410c;">${stats.totalFindings}</div>
+        <div class="metric-label-two-line">Active Risk<br>Findings (${stats.criticalCount} Critical)</div>
       </div>
-      <div class="stat-divider"></div>
-      <div class="stat-item">
-        <div class="severity-dot high"></div>
-        <div>
-          <div class="stat-value" style="color:var(--risk-high);">${stats.highCount}</div>
-          <div class="stat-label">High</div>
-        </div>
-      </div>
-      <div class="stat-divider"></div>
-      <div class="stat-item">
-        <div>
-          <div class="stat-value" style="color:var(--risk-critical);">${stats.adminCount}</div>
-          <div class="stat-label">Admin Equiv.</div>
-        </div>
-      </div>
-      <div class="stat-divider"></div>
-      <div class="stat-item">
-        <div>
-          <div class="stat-value" style="color:var(--text-accent);">${stats.totalFindings}</div>
-          <div class="stat-label">Total Findings</div>
-        </div>
+      <div class="metric-item">
+        <div class="metric-big-number" style="color:#b91c1c;">${stats.adminCount}</div>
+        <div class="metric-label-two-line">Admin-Equivalent<br>Identities</div>
       </div>
     `;
   }
@@ -175,7 +151,7 @@ const App = (function () {
     container.innerHTML = '';
     graphData.accounts.forEach((accountId) => {
       const badge = document.createElement('span');
-      badge.className = 'account-badge';
+      badge.className = 'account-pill';
       badge.textContent = accountId;
       container.appendChild(badge);
     });
@@ -207,20 +183,23 @@ const App = (function () {
 
     // Render graph
     GraphRenderer.renderGraph(graphData, findingsData, (nodeId, findingIds) => {
-      // When a graph node is clicked, highlight matching finding cards
       ScoreCards.highlightCards(findingIds);
     });
 
-    // Render scorecards
+    // Render scorecards and setup severity filter pills
     ScoreCards.renderScoreCards(findingsData, (finding) => {
-      // When a finding card is clicked:
-      // 1. Highlight the attack path in the graph
       GraphRenderer.highlightPath(finding.path);
-
-      // 2. Open the detail drawer with narrative + remediation
       const remediation = remediationMap[finding.finding_id] || null;
       DetailModal.showFindingDetail(finding, remediation);
     });
+    ScoreCards.setupFilterListeners();
+
+    // Auto-fit graph after elements render into the DOM
+    setTimeout(() => {
+      if (GraphRenderer && GraphRenderer.fitGraph) {
+        GraphRenderer.fitGraph();
+      }
+    }, 350);
 
     // Wire up graph control buttons
     document.getElementById('btn-zoom-in')?.addEventListener('click', () => GraphRenderer.zoomIn());
@@ -242,19 +221,12 @@ const App = (function () {
     if (!legend) return;
 
     legend.innerHTML = `
-      <div class="legend-title">Node Types</div>
-      <div class="legend-item"><div class="legend-shape circle" style="background:#64b5f6;"></div> User</div>
-      <div class="legend-item"><div class="legend-shape diamond" style="background:#bb86fc;"></div> Role</div>
-      <div class="legend-item"><div class="legend-shape" style="background:#4dd0e1;clip-path:polygon(50% 0%,100% 25%,100% 75%,50% 100%,0% 75%,0% 25%);"></div> Group</div>
-      <div class="legend-item"><div class="legend-shape" style="background:#ffb74d;border-radius:4px;"></div> Policy</div>
-      <div class="legend-item"><div class="legend-shape" style="background:#81c784;clip-path:polygon(50% 0%,100% 100%,0% 100%);"></div> Resource</div>
-      <div class="legend-item"><div class="legend-shape circle" style="background:transparent;border:2px solid #ff3366;"></div> Admin Equiv.</div>
-      <div class="legend-title" style="margin-top:var(--space-sm);">Edge Types</div>
-      <div class="legend-item"><div style="width:20px;height:2px;background:#bb86fc;"></div> AssumeRole</div>
-      <div class="legend-item"><div style="width:20px;height:2px;background:#ff6b35;border-top:2px dashed #ff6b35;height:0;"></div> PassRole</div>
-      <div class="legend-item"><div style="width:20px;height:1px;background:rgba(99,130,190,0.5);"></div> Policy Attach</div>
-      <div class="legend-item"><div style="width:20px;height:0;border-top:2px dotted rgba(77,208,225,0.5);"></div> Group Member</div>
-      <div class="legend-item"><div style="width:20px;height:2px;background:#ff3366;"></div> Wildcard ⚠</div>
+      <div class="legend-title-small">Node Types</div>
+      <div class="legend-item-line"><div class="legend-chip" style="background:#3b82f6;"></div> User</div>
+      <div class="legend-item-line"><div class="legend-chip" style="background:#8b5cf6;"></div> Role</div>
+      <div class="legend-item-line"><div class="legend-chip" style="background:#06b6d4;"></div> Group</div>
+      <div class="legend-item-line"><div class="legend-chip" style="background:#f97316;"></div> Policy</div>
+      <div class="legend-item-line"><div class="legend-chip" style="background:#ef4444;"></div> Admin Equivalent</div>
     `;
   }
 

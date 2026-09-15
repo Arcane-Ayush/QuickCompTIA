@@ -80,38 +80,36 @@ const ScoreCards = (function () {
       const rb = finding.risk_breakdown || {};
 
       card.innerHTML = `
-        <div class="finding-card-header">
-          <span class="finding-id">${escapeHtml(finding.finding_id)}</span>
-          <span class="type-badge ${escapeHtml(finding.type)}">${formatType(finding.type)}</span>
+        <div class="card-top-meta">
+          <span class="finding-id-pill">${escapeHtml(finding.finding_id)}</span>
+          <span class="type-pill ${escapeHtml(finding.type)}">${formatType(finding.type)}</span>
         </div>
-        <div class="finding-pattern">${escapeHtml(finding.pattern_name)}</div>
-        <div class="risk-score-display">
-          <span class="risk-score-number ${severity}">${finding.risk_score.toFixed(1)}</span>
-          <div class="risk-bar-container">
-            <div class="risk-bar-fill ${severity}" data-width="${finding.risk_score}"></div>
-          </div>
+        <div class="finding-pattern-title">${escapeHtml(finding.pattern_name)}</div>
+        <div class="score-line">
+          <span class="score-big ${severity}">${finding.risk_score.toFixed(1)}</span>
+          <span class="score-out-of">/ 100 Risk</span>
         </div>
-        <div class="risk-breakdown">
-          <div class="breakdown-item">
-            <span class="breakdown-label">Reach</span>
-            <div class="breakdown-bar-track">
-              <div class="breakdown-bar-fill" data-width="${(rb.reachability || 0) * 100}"></div>
+        <div class="breakdown-3col">
+          <div class="breakdown-unit">
+            <span class="breakdown-header-lbl">Reach</span>
+            <div class="breakdown-track">
+              <div class="breakdown-bar" style="width:${(rb.reachability || 0) * 100}%;"></div>
             </div>
-            <span class="breakdown-value">${((rb.reachability || 0) * 100).toFixed(0)}%</span>
+            <span class="breakdown-num">${((rb.reachability || 0) * 100).toFixed(0)}%</span>
           </div>
-          <div class="breakdown-item">
-            <span class="breakdown-label">Blast</span>
-            <div class="breakdown-bar-track">
-              <div class="breakdown-bar-fill" data-width="${(rb.blast_radius || 0) * 100}"></div>
+          <div class="breakdown-unit">
+            <span class="breakdown-header-lbl">Blast</span>
+            <div class="breakdown-track">
+              <div class="breakdown-bar" style="width:${(rb.blast_radius || 0) * 100}%;"></div>
             </div>
-            <span class="breakdown-value">${((rb.blast_radius || 0) * 100).toFixed(0)}%</span>
+            <span class="breakdown-num">${((rb.blast_radius || 0) * 100).toFixed(0)}%</span>
           </div>
-          <div class="breakdown-item">
-            <span class="breakdown-label">Exploit</span>
-            <div class="breakdown-bar-track">
-              <div class="breakdown-bar-fill" data-width="${(rb.exploit_triviality || 0) * 100}"></div>
+          <div class="breakdown-unit">
+            <span class="breakdown-header-lbl">Exploit</span>
+            <div class="breakdown-track">
+              <div class="breakdown-bar" style="width:${(rb.exploit_triviality || 0) * 100}%;"></div>
             </div>
-            <span class="breakdown-value">${((rb.exploit_triviality || 0) * 100).toFixed(0)}%</span>
+            <span class="breakdown-num">${((rb.exploit_triviality || 0) * 100).toFixed(0)}%</span>
           </div>
         </div>
       `;
@@ -168,10 +166,52 @@ const ScoreCards = (function () {
     return div.innerHTML;
   }
 
+  let currentFindingsData = null;
+  let currentOnCardClick = null;
+  let currentFilter = 'all';
+
+  /**
+   * Filters findings by severity ('all', 'critical', 'high', 'medium', 'low').
+   */
+  function filterBySeverity(filter) {
+    currentFilter = filter;
+    const cards = document.querySelectorAll('.finding-card');
+    let visibleCount = 0;
+
+    cards.forEach((card) => {
+      if (filter === 'all' || card.classList.contains(filter)) {
+        card.style.display = '';
+        visibleCount++;
+      } else {
+        card.style.display = 'none';
+      }
+    });
+
+    const countEl = document.querySelector('.findings-count');
+    if (countEl) countEl.textContent = visibleCount;
+  }
+
+  /**
+   * Sets up filter pill button click listeners.
+   */
+  function setupFilterListeners() {
+    const filterPills = document.querySelectorAll('.filter-pill');
+    filterPills.forEach((pill) => {
+      pill.addEventListener('click', () => {
+        filterPills.forEach((p) => p.classList.remove('active'));
+        pill.classList.add('active');
+        const filter = pill.dataset.filter || 'all';
+        filterBySeverity(filter);
+      });
+    });
+  }
+
   return {
     renderScoreCards,
     highlightCards,
     clearActiveCards,
+    filterBySeverity,
+    setupFilterListeners,
     getSeverity,
     getSeverityLabel,
     escapeHtml,
