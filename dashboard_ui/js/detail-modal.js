@@ -159,6 +159,20 @@ const DetailModal = (function () {
         </div>
       `;
     } else if (remediation && remediation.suggested_statement) {
+      const fixedDoc = {
+        Version: '2012-10-17',
+        Statement: [
+          {
+            Effect: 'Allow',
+            Action: remediation.suggested_statement.action,
+            Resource: remediation.suggested_statement.resource,
+            ...(remediation.suggested_statement.condition ? { Condition: remediation.suggested_statement.condition } : {})
+          }
+        ]
+      };
+      const jsonStr = JSON.stringify(fixedDoc, null, 2);
+      const cliCmd = `aws iam create-policy-version --policy-arn ${esc(finding.offending_policy_arn || 'arn:aws:iam::111111111111:policy/RemediatedPolicy')} --policy-document '${JSON.stringify(fixedDoc)}' --set-as-default`;
+
       html += `
         <div style="display:flex;flex-direction:column;gap:12px;">
           <div class="code-preview-card">
@@ -168,9 +182,19 @@ const DetailModal = (function () {
           <div class="justification-pastel-box">
             ${esc(remediation.justification)}
           </div>
-          <button class="pill-btn pill-btn-dark" id="download-fix-btn" data-finding-id="${esc(finding.finding_id)}" style="width:100%;justify-content:center;padding:12px 24px;">
-            ⬇ Download Fixed Policy
-          </button>
+          <div style="display:flex;flex-direction:column;gap:8px;">
+            <button class="pill-btn pill-btn-dark" id="download-fix-btn" style="width:100%;justify-content:center;padding:10px 20px;">
+              ⬇ Download Fixed Policy JSON
+            </button>
+            <div style="display:flex;gap:8px;">
+              <button class="pill-btn pill-btn-outline" id="copy-fix-btn" style="flex:1;justify-content:center;font-size:0.75rem;padding:8px 12px;">
+                📋 Copy Policy JSON
+              </button>
+              <button class="pill-btn pill-btn-outline" id="copy-cli-btn" style="flex:1;justify-content:center;font-size:0.75rem;padding:8px 12px;">
+                ⚡ Copy AWS CLI Fix
+              </button>
+            </div>
+          </div>
         </div>
       `;
     } else {
@@ -192,6 +216,57 @@ const DetailModal = (function () {
     if (dlBtn && remediation && remediation.suggested_statement) {
       dlBtn.addEventListener('click', () => {
         downloadFixedPolicy(finding, remediation);
+      });
+    }
+
+    // Wire up copy JSON button
+    const copyJsonBtn = document.getElementById('copy-fix-btn');
+    if (copyJsonBtn && remediation && remediation.suggested_statement) {
+      copyJsonBtn.addEventListener('click', () => {
+        const fixedDoc = {
+          Version: '2012-10-17',
+          Statement: [
+            {
+              Effect: 'Allow',
+              Action: remediation.suggested_statement.action,
+              Resource: remediation.suggested_statement.resource,
+              ...(remediation.suggested_statement.condition ? { Condition: remediation.suggested_statement.condition } : {})
+            }
+          ]
+        };
+        navigator.clipboard.writeText(JSON.stringify(fixedDoc, null, 2)).then(() => {
+          copyJsonBtn.textContent = '✓ Copied JSON!';
+          if (window.App && window.App.showToast) {
+            window.App.showToast('✓ Policy JSON copied to clipboard');
+          }
+          setTimeout(() => { copyJsonBtn.textContent = '📋 Copy Policy JSON'; }, 2000);
+        });
+      });
+    }
+
+    // Wire up copy CLI button
+    const copyCliBtn = document.getElementById('copy-cli-btn');
+    if (copyCliBtn && remediation && remediation.suggested_statement) {
+      copyCliBtn.addEventListener('click', () => {
+        const fixedDoc = {
+          Version: '2012-10-17',
+          Statement: [
+            {
+              Effect: 'Allow',
+              Action: remediation.suggested_statement.action,
+              Resource: remediation.suggested_statement.resource,
+              ...(remediation.suggested_statement.condition ? { Condition: remediation.suggested_statement.condition } : {})
+            }
+          ]
+        };
+        const cliCmd = `aws iam create-policy-version --policy-arn ${finding.offending_policy_arn || 'arn:aws:iam::111111111111:policy/RemediatedPolicy'} --policy-document '${JSON.stringify(fixedDoc)}' --set-as-default`;
+        navigator.clipboard.writeText(cliCmd).then(() => {
+          copyCliBtn.textContent = '✓ Copied CLI!';
+          if (window.App && window.App.showToast) {
+            window.App.showToast('✓ AWS CLI command copied to clipboard');
+          }
+          setTimeout(() => { copyCliBtn.textContent = '⚡ Copy AWS CLI Fix'; }, 2000);
+        });
       });
     }
   }

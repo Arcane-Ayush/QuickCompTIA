@@ -206,12 +206,88 @@ const ScoreCards = (function () {
     });
   }
 
+  /**
+   * Selects the next visible card in the list.
+   */
+  function selectNextCard() {
+    const visibleCards = Array.from(document.querySelectorAll('.finding-card')).filter(
+      (c) => c.style.display !== 'none'
+    );
+    if (visibleCards.length === 0) return;
+
+    const activeIdx = visibleCards.findIndex((c) => c.classList.contains('active'));
+    let nextIdx = 0;
+    if (activeIdx !== -1 && activeIdx < visibleCards.length - 1) {
+      nextIdx = activeIdx + 1;
+    }
+
+    visibleCards[nextIdx].click();
+    visibleCards[nextIdx].scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+
+  /**
+   * Selects the previous visible card in the list.
+   */
+  function selectPrevCard() {
+    const visibleCards = Array.from(document.querySelectorAll('.finding-card')).filter(
+      (c) => c.style.display !== 'none'
+    );
+    if (visibleCards.length === 0) return;
+
+    const activeIdx = visibleCards.findIndex((c) => c.classList.contains('active'));
+    let prevIdx = visibleCards.length - 1;
+    if (activeIdx > 0) {
+      prevIdx = activeIdx - 1;
+    }
+
+    visibleCards[prevIdx].click();
+    visibleCards[prevIdx].scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+
+  /**
+   * Triggers click on the currently active card or first visible card.
+   */
+  function openSelectedCard() {
+    const active = document.querySelector('.finding-card.active');
+    if (active) {
+      active.click();
+    } else {
+      const firstVisible = Array.from(document.querySelectorAll('.finding-card')).find(
+        (c) => c.style.display !== 'none'
+      );
+      if (firstVisible) firstVisible.click();
+    }
+  }
+
+  /**
+   * Quick filter by key index (1=all, 2=critical, 3=high, 4=medium, 5=low).
+   */
+  function filterByKeyIndex(num) {
+    const map = { 1: 'all', 2: 'critical', 3: 'high', 4: 'medium', 5: 'low' };
+    const filter = map[num];
+    if (!filter) return;
+
+    const filterPills = document.querySelectorAll('.filter-pill');
+    filterPills.forEach((p) => {
+      if (p.dataset.filter === filter) {
+        p.classList.add('active');
+      } else {
+        p.classList.remove('active');
+      }
+    });
+    filterBySeverity(filter);
+  }
+
   return {
     renderScoreCards,
     highlightCards,
     clearActiveCards,
     filterBySeverity,
+    filterByKeyIndex,
     setupFilterListeners,
+    selectNextCard,
+    selectPrevCard,
+    openSelectedCard,
     getSeverity,
     getSeverityLabel,
     escapeHtml,

@@ -91,25 +91,37 @@ const App = (function () {
     return map;
   }
 
+  /** Displays a sleek toast notification at the bottom of the screen. */
+  function showToast(message, duration = 2600) {
+    const toast = document.getElementById('toast-box');
+    if (!toast) return;
+    toast.textContent = message;
+    toast.classList.add('show');
+    clearTimeout(toast._timeout);
+    toast._timeout = setTimeout(() => {
+      toast.classList.remove('show');
+    }, duration);
+  }
+
   /** Computes aggregate stats for the stats bar. */
   function computeStats(graphData, findingsData) {
     const stats = {
-      totalNodes: graphData.nodes ? graphData.nodes.length : 0,
-      totalEdges: graphData.edges ? graphData.edges.length : 0,
-      totalFindings: findingsData.findings ? findingsData.findings.length : 0,
+      totalNodes: graphData && graphData.nodes ? graphData.nodes.length : 0,
+      totalEdges: graphData && graphData.edges ? graphData.edges.length : 0,
+      totalFindings: findingsData && findingsData.findings ? findingsData.findings.length : 0,
       criticalCount: 0,
       highCount: 0,
       adminCount: 0,
     };
 
-    if (findingsData.findings) {
+    if (findingsData && findingsData.findings) {
       findingsData.findings.forEach((f) => {
         if (f.risk_score >= 90) stats.criticalCount++;
         else if (f.risk_score >= 70) stats.highCount++;
       });
     }
 
-    if (graphData.nodes) {
+    if (graphData && graphData.nodes) {
       graphData.nodes.forEach((n) => {
         if (n.is_admin_equivalent) stats.adminCount++;
       });
@@ -146,7 +158,7 @@ const App = (function () {
   /** Renders account badges in the header. */
   function renderAccountBadges(graphData) {
     const container = document.querySelector('.account-badges');
-    if (!container || !graphData.accounts) return;
+    if (!container || !graphData || !graphData.accounts) return;
 
     container.innerHTML = '';
     graphData.accounts.forEach((accountId) => {
@@ -160,13 +172,22 @@ const App = (function () {
   /**
    * Main initialization — renders all dashboard components.
    * @param {Object} graphData - Parsed graph_export.json
-   * @param {Object} findingsData - Parsed findings.json
-   * @param {Object} remediationsData - Parsed remediations.json
+   * @param {Object} findingsData - Parsed findings.json (optional)
+   * @param {Object} remediationsData - Parsed remediations.json (optional)
    */
   function initDashboard(graphData, findingsData, remediationsData) {
+    findingsData = findingsData || { findings: [] };
+    remediationsData = remediationsData || { remediations: [] };
+
     // Hide file loader overlay
     const loaderOverlay = document.querySelector('.file-loader-overlay');
     if (loaderOverlay) loaderOverlay.classList.add('hidden');
+
+    // Update graph toolbar stat badge
+    const graphBadge = document.getElementById('graph-stat-badge');
+    if (graphBadge && graphData && graphData.nodes && graphData.edges) {
+      graphBadge.textContent = `${graphData.nodes.length} Nodes • ${graphData.edges.length} Edges`;
+    }
 
     // Build remediation lookup
     const remediationMap = buildRemediationMap(remediationsData);
@@ -230,6 +251,179 @@ const App = (function () {
     `;
   }
 
+  /** Handles importing a Parser Graph (graph_export.json) with optional auto-visualization. */
+  function handleParserGraphImport(graphJson, autoVisualize = false) {
+    try {
+      validateGraphData(graphJson);
+      state.graphData = graphJson;
+      state.filesLoaded.graph = true;
+      markFileLoaded('file-graph');
+
+      // Update status label in modal
+      const statusLbl = document.getElementById('status-file-graph');
+      if (statusLbl) {
+        statusLbl.textContent = `✓ ${graphJson.nodes.length} Nodes, ${graphJson.edges.length} Relationships parsed`;
+        statusLbl.style.color = '#15803d';
+        statusLbl.style.fontWeight = '600';
+      }
+
+      // Show the direct visualize button in modal
+      const vizBtn = document.getElementById('btn-render-graph-only');
+      if (vizBtn) vizBtn.style.display = 'flex';
+
+      if (autoVisualize) {
+        initDashboard(state.graphData, state.findingsData || { findings: [] }, state.remediationsData || { remediations: [] });
+        showToast(`✓ Parser Graph rendered (${graphJson.nodes.length} nodes, ${graphJson.edges.length} edges)`);
+      }
+    } catch (err) {
+      alert('Invalid Parser Graph file: ' + err.message);
+    }
+  }
+
+  /** Sets up global keyboard shortcuts. */
+  function setupKeyboardShortcuts() {
+    document.addEventListener('keydown', (e) => {
+      // Don't intercept when user is typing in form inputs
+      if (['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement?.tagName)) {
+        return;
+      }
+
+      const key = e.key;
+
+      if (key === '+' || key === '=') {
+        e.preventDefault();
+        GraphRenderer.zoomIn();
+      } else if (key === '-' || key === '_') {
+        e.preventDefault();
+        GraphRenderer.zoomOut();
+      } else if (key === '0' || key === 'f' || key === 'F') {
+        e.preventDefault();
+        GraphRenderer.fitGraph();
+        showToast('⊡ Graph fitted to view');
+      } else if (key === 'r' || key === 'R') {
+        e.preventDefault();
+        GraphRenderer.clearHighlights();
+        GraphRenderer.fitGraph();
+        ScoreCards.clearActiveCards();
+        showToast('↺ Graph view reset');
+      } else if (key === 'Escape') {
+        const shortcutsModal = document.getElementById('shortcuts-overlay');
+        const loaderModal = document.getElementById('file-loader-overlay');
+        if (shortcutsModal && !shortcutsModal.classList.contains('hidden')) {
+          shortcutsModal.classList.add('hidden');
+        } else if (loaderModal && !loaderModal.classList.contains('hidden')) {
+          loaderModal.classList.add('hidden');
+        } else if (DetailModal.getIsOpen && DetailModal.getIsOpen()) {
+          DetailModal.closeDrawer();
+        } else {
+          GraphRenderer.clearHighlights();
+          ScoreCards.clearActiveCards();
+        }
+      } else if (key === 'ArrowDown' || key === 'j' || key === 'J') {
+        e.preventDefault();
+        ScoreCards.selectNextCard();
+      } else if (key === 'ArrowUp' || key === 'k' || key === 'K') {
+        e.preventDefault();
+        ScoreCards.selectPrevCard();
+      } else if (key === 'Enter') {
+        e.preventDefault();
+        ScoreCards.openSelectedCard();
+      } else if (['1', '2', '3', '4', '5'].includes(key)) {
+        e.preventDefault();
+        ScoreCards.filterByKeyIndex(parseInt(key, 10));
+        const names = { '1': 'All', '2': 'Critical', '3': 'High', '4': 'Medium', '5': 'Low' };
+        showToast(`Filter: ${names[key]} findings`);
+      } else if (key === 'i' || key === 'I') {
+        e.preventDefault();
+        const loaderModal = document.getElementById('file-loader-overlay');
+        if (loaderModal) loaderModal.classList.toggle('hidden');
+      } else if (key === '?') {
+        e.preventDefault();
+        const shortcutsModal = document.getElementById('shortcuts-overlay');
+        if (shortcutsModal) shortcutsModal.classList.toggle('hidden');
+      }
+    });
+  }
+
+  /** Sets up drag and drop handling on the modal dropzone. */
+  function setupDragAndDrop() {
+    const dropzone = document.getElementById('dropzone-container');
+    const fileInput = document.getElementById('file-dropzone');
+    if (!dropzone) return;
+
+    dropzone.addEventListener('click', () => fileInput && fileInput.click());
+
+    ['dragenter', 'dragover'].forEach((eventName) => {
+      dropzone.addEventListener(eventName, (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        dropzone.classList.add('dragover');
+      });
+    });
+
+    ['dragleave', 'drop'].forEach((eventName) => {
+      dropzone.addEventListener(eventName, (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        dropzone.classList.remove('dragover');
+      });
+    });
+
+    dropzone.addEventListener('drop', async (e) => {
+      const files = Array.from(e.dataTransfer.files);
+      if (files.length === 0) return;
+
+      for (const file of files) {
+        try {
+          const json = await readFileAsJson(file);
+          if (json.nodes && json.edges) {
+            handleParserGraphImport(json, true);
+          } else if (json.findings) {
+            validateFindingsData(json);
+            state.findingsData = json;
+            state.filesLoaded.findings = true;
+            markFileLoaded('file-findings');
+            showToast(`✓ Loaded findings (${json.findings.length} items)`);
+          } else if (json.remediations) {
+            validateRemediationsData(json);
+            state.remediationsData = json;
+            state.filesLoaded.remediations = true;
+            markFileLoaded('file-remediations');
+            showToast(`✓ Loaded remediations (${json.remediations.length} items)`);
+          }
+        } catch (err) {
+          showToast(`Error in ${file.name}: ${err.message}`);
+        }
+      }
+    });
+
+    if (fileInput) {
+      fileInput.addEventListener('change', async (e) => {
+        const files = Array.from(e.target.files);
+        for (const file of files) {
+          try {
+            const json = await readFileAsJson(file);
+            if (json.nodes && json.edges) {
+              handleParserGraphImport(json, true);
+            } else if (json.findings) {
+              validateFindingsData(json);
+              state.findingsData = json;
+              state.filesLoaded.findings = true;
+              markFileLoaded('file-findings');
+            } else if (json.remediations) {
+              validateRemediationsData(json);
+              state.remediationsData = json;
+              state.filesLoaded.remediations = true;
+              markFileLoaded('file-remediations');
+            }
+          } catch (err) {
+            alert(err.message);
+          }
+        }
+      });
+    }
+  }
+
   /** Initializes the application — sets up file loaders and event handlers. */
   function init() {
     // --- File input handlers ---
@@ -241,9 +435,7 @@ const App = (function () {
       graphInput.addEventListener('change', async (e) => {
         try {
           state.graphData = await readFileAsJson(e.target.files[0]);
-          validateGraphData(state.graphData);
-          state.filesLoaded.graph = true;
-          markFileLoaded('file-graph');
+          handleParserGraphImport(state.graphData, false);
           checkAllLoaded();
         } catch (err) {
           alert('Error loading graph file: ' + err.message);
@@ -258,6 +450,12 @@ const App = (function () {
           validateFindingsData(state.findingsData);
           state.filesLoaded.findings = true;
           markFileLoaded('file-findings');
+          const statusLbl = document.getElementById('status-file-findings');
+          if (statusLbl) {
+            statusLbl.textContent = `✓ ${state.findingsData.findings.length} Findings detected`;
+            statusLbl.style.color = '#15803d';
+            statusLbl.style.fontWeight = '600';
+          }
           checkAllLoaded();
         } catch (err) {
           alert('Error loading findings file: ' + err.message);
@@ -272,10 +470,69 @@ const App = (function () {
           validateRemediationsData(state.remediationsData);
           state.filesLoaded.remediations = true;
           markFileLoaded('file-remediations');
+          const statusLbl = document.getElementById('status-file-remediations');
+          if (statusLbl) {
+            statusLbl.textContent = `✓ ${state.remediationsData.remediations.length} Remediations loaded`;
+            statusLbl.style.color = '#15803d';
+            statusLbl.style.fontWeight = '600';
+          }
           checkAllLoaded();
         } catch (err) {
           alert('Error loading remediations file: ' + err.message);
         }
+      });
+    }
+
+    // --- Direct Graph Import from Toolbar ---
+    const directGraphBtn = document.getElementById('btn-graph-direct-import');
+    const directGraphInput = document.getElementById('file-graph-direct');
+    if (directGraphBtn && directGraphInput) {
+      directGraphBtn.addEventListener('click', () => directGraphInput.click());
+      directGraphInput.addEventListener('change', async (e) => {
+        if (!e.target.files[0]) return;
+        try {
+          const json = await readFileAsJson(e.target.files[0]);
+          handleParserGraphImport(json, true);
+        } catch (err) {
+          alert('Error loading parser graph: ' + err.message);
+        }
+      });
+    }
+
+    // --- Visualize Parser Graph Only button ---
+    const vizGraphOnlyBtn = document.getElementById('btn-render-graph-only');
+    if (vizGraphOnlyBtn) {
+      vizGraphOnlyBtn.addEventListener('click', () => {
+        if (state.graphData) {
+          initDashboard(state.graphData, state.findingsData || { findings: [] }, state.remediationsData || { remediations: [] });
+          showToast(`✓ Visualizing Parser Graph (${state.graphData.nodes.length} nodes)`);
+        }
+      });
+    }
+
+    // --- Apply All Imported Files button ---
+    const applyAllBtn = document.getElementById('btn-apply-all-import');
+    if (applyAllBtn) {
+      applyAllBtn.addEventListener('click', () => {
+        if (state.graphData) {
+          initDashboard(state.graphData, state.findingsData || { findings: [] }, state.remediationsData || { remediations: [] });
+          showToast('✓ Custom workspace loaded');
+        } else {
+          alert('Please select at least a Parser Graph (graph_export.json) before applying.');
+        }
+      });
+    }
+
+    // --- Live Scan / Pipeline Re-run button ---
+    const liveScanBtn = document.getElementById('btn-run-pipeline');
+    if (liveScanBtn) {
+      liveScanBtn.addEventListener('click', async () => {
+        liveScanBtn.textContent = '⟳ Scanning…';
+        liveScanBtn.disabled = true;
+        await autoLoadScanData();
+        liveScanBtn.textContent = 'Live Scan';
+        liveScanBtn.disabled = false;
+        showToast('✓ Live scan synchronized with active environment');
       });
     }
 
@@ -312,6 +569,27 @@ const App = (function () {
         }
       });
     }
+
+    // --- Keyboard shortcuts modal toggle ---
+    const shortcutsBtn = document.getElementById('btn-shortcuts-toggle');
+    const closeShortcutsBtn = document.getElementById('btn-close-shortcuts');
+    const shortcutsOverlay = document.getElementById('shortcuts-overlay');
+
+    if (shortcutsBtn && shortcutsOverlay) {
+      shortcutsBtn.addEventListener('click', () => shortcutsOverlay.classList.remove('hidden'));
+    }
+    if (closeShortcutsBtn && shortcutsOverlay) {
+      closeShortcutsBtn.addEventListener('click', () => shortcutsOverlay.classList.add('hidden'));
+    }
+    if (shortcutsOverlay) {
+      shortcutsOverlay.addEventListener('click', (e) => {
+        if (e.target === shortcutsOverlay) shortcutsOverlay.classList.add('hidden');
+      });
+    }
+
+    // Setup global keyboard shortcuts & drag and drop
+    setupKeyboardShortcuts();
+    setupDragAndDrop();
 
     // Auto-load scan data on launch
     autoLoadScanData();
@@ -376,15 +654,18 @@ const App = (function () {
       validateRemediationsData(state.remediationsData);
 
       state.filesLoaded = { graph: true, findings: true, remediations: true };
-
-      // Mark all file inputs as loaded
       ['file-graph', 'file-findings', 'file-remediations'].forEach(markFileLoaded);
 
       initDashboard(state.graphData, state.findingsData, state.remediationsData);
+      showToast('✓ Real IAM Scan Results loaded (28 Principals, 11 Findings)');
+      if (btn) {
+        btn.textContent = '⚡ Real Scan (28 Nodes)';
+        btn.disabled = false;
+      }
     } catch (err) {
       alert('Error loading real scan data: ' + err.message + '\nFalling back to demo stubs.');
       if (btn) {
-        btn.textContent = '⚡ Load Real IAM Scan Results (28 Nodes, Multi-Account)';
+        btn.textContent = '⚡ Real Scan (28 Nodes)';
         btn.disabled = false;
       }
     }
@@ -405,7 +686,7 @@ const App = (function () {
         fetch('data/stub_remediations.json'),
       ]);
 
-      if (!graphResp.ok) throw new Error('Failed to fetch stub_graph_export.json — make sure you are running from a local HTTP server.');
+      if (!graphResp.ok) throw new Error('Failed to fetch stub_graph_export.json');
       if (!findingsResp.ok) throw new Error('Failed to fetch stub_findings.json');
       if (!remediationsResp.ok) throw new Error('Failed to fetch stub_remediations.json');
 
@@ -418,15 +699,18 @@ const App = (function () {
       validateRemediationsData(state.remediationsData);
 
       state.filesLoaded = { graph: true, findings: true, remediations: true };
-
-      // Mark all file inputs as loaded
       ['file-graph', 'file-findings', 'file-remediations'].forEach(markFileLoaded);
 
       initDashboard(state.graphData, state.findingsData, state.remediationsData);
+      showToast('✓ Minimal Demo Fixture loaded (10 Nodes)');
+      if (btn) {
+        btn.textContent = '🧪 Minimal Stubs (10 Nodes)';
+        btn.disabled = false;
+      }
     } catch (err) {
       alert('Error loading stub data: ' + err.message);
       if (btn) {
-        btn.textContent = 'Load Built-in Demo Data';
+        btn.textContent = '🧪 Minimal Stubs (10 Nodes)';
         btn.disabled = false;
       }
     }
@@ -441,8 +725,14 @@ const App = (function () {
 
   return {
     init,
+    showToast,
+    handleParserGraphImport,
+    initDashboard,
     loadRealScanData,
     loadStubData,
     getState: () => state,
   };
 })();
+
+window.App = App;
+

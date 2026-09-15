@@ -431,11 +431,86 @@ body {
   left: 0;
 }
 
+/* Graph Header Toolbar */
+.graph-top-toolbar {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  right: 70px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  z-index: 20;
+  pointer-events: none;
+}
+
+.graph-top-toolbar > * {
+  pointer-events: auto;
+}
+
+.graph-title-pill {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  padding: 8px 16px;
+  border-radius: var(--radius-pill);
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+}
+
+.graph-title-text {
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-display);
+}
+
+.graph-count-chip {
+  font-size: 0.70rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  background: #f1f5f9;
+  border-radius: 9999px;
+  color: var(--text-muted);
+}
+
+.graph-toolbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.graph-tool-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  padding: 7px 14px;
+  border-radius: var(--radius-pill);
+  border: 1px solid #e2e8f0;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--text-display);
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+  transition: all 150ms ease;
+}
+
+.graph-tool-btn:hover {
+  background: #ffffff;
+  border-color: var(--btn-charcoal);
+  transform: translateY(-1px);
+}
+
 /* Floating Pill Controls on Graph */
 .graph-pill-controls {
   position: absolute;
-  top: 20px;
-  right: 20px;
+  top: 16px;
+  right: 16px;
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -861,8 +936,133 @@ body {
   border-radius: var(--radius-card);
   padding: 36px;
   width: 90%;
+  max-width: 540px;
+  box-shadow: var(--shadow-board);
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+/* Drag and Drop Zone */
+.dropzone-box {
+  border: 2px dashed #cbd5e1;
+  border-radius: var(--radius-inner);
+  padding: 24px;
+  text-align: center;
+  background: #f8fafc;
+  cursor: pointer;
+  transition: all 180ms ease;
+  margin-bottom: 20px;
+}
+
+.dropzone-box:hover, .dropzone-box.dragover {
+  border-color: var(--btn-charcoal);
+  background: #f1f5f9;
+}
+
+.dropzone-icon {
+  font-size: 28px;
+  margin-bottom: 8px;
+}
+
+.dropzone-text {
+  font-weight: 700;
+  font-size: 0.88rem;
+  color: var(--text-display);
+  margin-bottom: 4px;
+}
+
+.dropzone-subtext {
+  font-size: 0.74rem;
+  color: var(--text-muted);
+}
+
+/* Toast Notifications */
+.toast-notification {
+  position: fixed;
+  bottom: 28px;
+  left: 50%;
+  transform: translateX(-50%) translateY(100px);
+  background: #141416;
+  color: #ffffff;
+  padding: 12px 24px;
+  border-radius: var(--radius-pill);
+  font-size: 0.82rem;
+  font-weight: 600;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  z-index: 3000;
+  opacity: 0;
+  transition: all 260ms cubic-bezier(0.16, 1, 0.3, 1);
+  pointer-events: none;
+}
+
+.toast-notification.show {
+  transform: translateX(-50%) translateY(0);
+  opacity: 1;
+}
+
+/* Keyboard Shortcuts Modal */
+.shortcuts-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.45);
+  backdrop-filter: blur(8px);
+  z-index: 2100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 200ms ease;
+}
+
+.shortcuts-overlay.hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.shortcuts-card {
+  background: #ffffff;
+  border-radius: var(--radius-card);
+  padding: 32px;
+  width: 90%;
   max-width: 480px;
   box-shadow: var(--shadow-board);
+}
+
+.shortcut-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 0;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.shortcut-row:last-child {
+  border-bottom: none;
+}
+
+.shortcut-keys-group {
+  display: flex;
+  gap: 6px;
+}
+
+.kbd-badge {
+  background: #f1f5f9;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  padding: 3px 8px;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--text-display);
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+}
+
+.shortcut-desc {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-body);
 }
 
 /* Animations */

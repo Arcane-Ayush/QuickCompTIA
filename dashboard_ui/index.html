@@ -123,6 +123,23 @@
       <div class="graph-container-card" aria-label="IAM relationship graph">
         <div id="cy-container"></div>
 
+        <!-- Graph Header Toolbar -->
+        <div class="graph-top-toolbar">
+          <div class="graph-title-pill">
+            <span class="graph-title-text">Attack Graph</span>
+            <span class="graph-count-chip" id="graph-stat-badge">28 Nodes • 31 Edges</span>
+          </div>
+          <div class="graph-toolbar-actions">
+            <button class="graph-tool-btn" id="btn-graph-direct-import" title="Import Parser Graph (graph_export.json)">
+              📥 Import Graph
+            </button>
+            <button class="graph-tool-btn" id="btn-shortcuts-toggle" title="View Keyboard Shortcuts (?)">
+              ⌨️ Keys
+            </button>
+          </div>
+        </div>
+        <input type="file" id="file-graph-direct" accept=".json" style="display:none;">
+
         <!-- Graph Legend Pill -->
         <div class="graph-legend-pill graph-legend" aria-label="Graph legend">
           <div class="legend-title-small">Node Types</div>
@@ -135,10 +152,10 @@
 
         <!-- Floating Pill Controls -->
         <div class="graph-pill-controls" aria-label="Graph zoom controls">
-          <button class="graph-circle-btn" id="btn-zoom-in" title="Zoom In" aria-label="Zoom in">+</button>
-          <button class="graph-circle-btn" id="btn-zoom-out" title="Zoom Out" aria-label="Zoom out">−</button>
-          <button class="graph-circle-btn" id="btn-fit" title="Fit to View" aria-label="Fit view">⊡</button>
-          <button class="graph-circle-btn" id="btn-reset" title="Reset View" aria-label="Reset view">↺</button>
+          <button class="graph-circle-btn" id="btn-zoom-in" title="Zoom In (+)" aria-label="Zoom in">+</button>
+          <button class="graph-circle-btn" id="btn-zoom-out" title="Zoom Out (-)" aria-label="Zoom out">−</button>
+          <button class="graph-circle-btn" id="btn-fit" title="Fit to View (0 or F)" aria-label="Fit view">⊡</button>
+          <button class="graph-circle-btn" id="btn-reset" title="Reset View (R)" aria-label="Reset view">↺</button>
         </div>
       </div>
 
@@ -152,11 +169,11 @@
 
           <!-- Filter Pills -->
           <div class="filter-pills-row" role="group" aria-label="Filter findings by severity">
-            <button class="filter-pill active" data-filter="all">All</button>
-            <button class="filter-pill" data-filter="critical">Critical</button>
-            <button class="filter-pill" data-filter="high">High</button>
-            <button class="filter-pill" data-filter="medium">Medium</button>
-            <button class="filter-pill" data-filter="low">Low</button>
+            <button class="filter-pill active" data-filter="all" title="Shortcut: Key 1">All</button>
+            <button class="filter-pill" data-filter="critical" title="Shortcut: Key 2">Critical</button>
+            <button class="filter-pill" data-filter="high" title="Shortcut: Key 3">High</button>
+            <button class="filter-pill" data-filter="medium" title="Shortcut: Key 4">Medium</button>
+            <button class="filter-pill" data-filter="low" title="Shortcut: Key 5">Low</button>
           </div>
         </div>
 
@@ -174,52 +191,161 @@
   <aside class="detail-drawer" id="detail-drawer" role="dialog" aria-label="Finding detail" aria-hidden="true">
     <div class="drawer-header">
       <h3 class="drawer-title-styled">FINDING DETAIL</h3>
-      <button class="drawer-close-circle" id="btn-close-drawer" aria-label="Close detail drawer">✕</button>
+      <button class="drawer-close-circle" id="btn-close-drawer" aria-label="Close detail drawer (Esc)">✕</button>
     </div>
     <div class="drawer-content-scroll detail-drawer-body" id="drawer-body">
       <!-- Populated dynamically by detail-modal.js -->
     </div>
   </aside>
 
-  <!-- ============ OPTIONAL FILE IMPORT MODAL (Hidden by default) ============ -->
+  <!-- ============ FILE IMPORT & PARSER GRAPH MODAL ============ -->
   <div class="file-loader-overlay hidden" id="file-loader-overlay">
     <div class="file-loader-card">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
-        <h3 class="card-headline-uppercase" style="margin:0;">IMPORT CUSTOM SCAN FILES</h3>
+        <h3 class="card-headline-uppercase" style="margin:0;">IMPORT SCAN & PARSER GRAPH</h3>
         <button id="btn-close-loader" class="drawer-close-circle" aria-label="Close modal">✕</button>
       </div>
-      <p class="card-body-description" style="margin-bottom:20px;">
-        Select custom pipeline output files (`graph_export.json`, `findings.json`, `remediations.json`) to visualize.
-      </p>
 
-      <div style="display:flex;flex-direction:column;gap:12px;margin-bottom:24px;">
-        <div style="display:flex;justify-content:space-between;align-items:center;padding:12px;background:#f8fafc;border-radius:12px;border:1px solid #e2e8f0;">
-          <span style="font-weight:600;font-size:0.85rem;">graph_export.json</span>
-          <label class="pill-btn pill-btn-outline" for="file-graph" style="padding:6px 16px;font-size:0.75rem;">Browse</label>
-          <input type="file" id="file-graph" accept=".json" style="display:none;">
-        </div>
-        <div style="display:flex;justify-content:space-between;align-items:center;padding:12px;background:#f8fafc;border-radius:12px;border:1px solid #e2e8f0;">
-          <span style="font-weight:600;font-size:0.85rem;">findings.json</span>
-          <label class="pill-btn pill-btn-outline" for="file-findings" style="padding:6px 16px;font-size:0.75rem;">Browse</label>
-          <input type="file" id="file-findings" accept=".json" style="display:none;">
-        </div>
-        <div style="display:flex;justify-content:space-between;align-items:center;padding:12px;background:#f8fafc;border-radius:12px;border:1px solid #e2e8f0;">
-          <span style="font-weight:600;font-size:0.85rem;">remediations.json</span>
-          <label class="pill-btn pill-btn-outline" for="file-remediations" style="padding:6px 16px;font-size:0.75rem;">Browse</label>
-          <input type="file" id="file-remediations" accept=".json" style="display:none;">
-        </div>
+      <!-- Drag & Drop Zone -->
+      <div class="dropzone-box" id="dropzone-container">
+        <div class="dropzone-icon">📁</div>
+        <div class="dropzone-text">Drop graph_export.json or scan files here</div>
+        <div class="dropzone-subtext">Click to browse or drag & drop custom JSON outputs</div>
+        <input type="file" id="file-dropzone" accept=".json" multiple style="display:none;">
       </div>
 
-      <button class="pill-btn pill-btn-outline" id="btn-load-stubs" style="width:100%;justify-content:center;">
-        Load Minimal Stub Fixture (10 Nodes)
+      <!-- 3 Files Input Group -->
+      <div style="display:flex;flex-direction:column;gap:12px;margin-bottom:20px;">
+        
+        <!-- Parser Graph File Row -->
+        <div class="file-input-row" style="padding:14px;background:#f8fafc;border-radius:14px;border:1.5px solid #e2e8f0;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+            <div>
+              <span style="font-weight:700;font-size:0.86rem;display:block;">1. Parser Graph (graph_export.json)</span>
+              <span class="file-status-subtext" id="status-file-graph" style="font-size:0.75rem;color:var(--text-muted);">IAM identities, accounts & relationship edges</span>
+            </div>
+            <label class="pill-btn pill-btn-outline file-input-label" for="file-graph" style="padding:6px 16px;font-size:0.75rem;cursor:pointer;">Browse</label>
+            <input type="file" id="file-graph" accept=".json" style="display:none;">
+          </div>
+          <button class="pill-btn pill-btn-dark" id="btn-render-graph-only" style="width:100%;font-size:0.75rem;padding:6px 12px;display:none;justify-content:center;margin-top:8px;">
+            🚀 Visualize Parser Graph Directly
+          </button>
+        </div>
+
+        <!-- Detection Engine Findings Row -->
+        <div class="file-input-row" style="display:flex;justify-content:space-between;align-items:center;padding:12px 14px;background:#f8fafc;border-radius:14px;border:1.5px solid #e2e8f0;">
+          <div>
+            <span style="font-weight:700;font-size:0.86rem;display:block;">2. Detection Findings (findings.json)</span>
+            <span class="file-status-subtext" id="status-file-findings" style="font-size:0.75rem;color:var(--text-muted);">Escalation paths, pattern detections & ML risk scores</span>
+          </div>
+          <label class="pill-btn pill-btn-outline file-input-label" for="file-findings" style="padding:6px 16px;font-size:0.75rem;cursor:pointer;">Browse</label>
+          <input type="file" id="file-findings" accept=".json" style="display:none;">
+        </div>
+
+        <!-- Remediation Generator Row -->
+        <div class="file-input-row" style="display:flex;justify-content:space-between;align-items:center;padding:12px 14px;background:#f8fafc;border-radius:14px;border:1.5px solid #e2e8f0;">
+          <div>
+            <span style="font-weight:700;font-size:0.86rem;display:block;">3. Remediations (remediations.json)</span>
+            <span class="file-status-subtext" id="status-file-remediations" style="font-size:0.75rem;color:var(--text-muted);">Least-privilege policy fixes and justifications</span>
+          </div>
+          <label class="pill-btn pill-btn-outline file-input-label" for="file-remediations" style="padding:6px 16px;font-size:0.75rem;cursor:pointer;">Browse</label>
+          <input type="file" id="file-remediations" accept=".json" style="display:none;">
+        </div>
+
+      </div>
+
+      <!-- Quick Preset Buttons -->
+      <div style="display:flex;gap:10px;margin-bottom:16px;">
+        <button class="pill-btn pill-btn-outline" id="btn-load-real" style="flex:1;justify-content:center;font-size:0.75rem;padding:8px 12px;">
+          ⚡ Real Scan (28 Nodes)
+        </button>
+        <button class="pill-btn pill-btn-outline" id="btn-load-stubs" style="flex:1;justify-content:center;font-size:0.75rem;padding:8px 12px;">
+          🧪 Minimal Stubs (10 Nodes)
+        </button>
+      </div>
+
+      <button class="pill-btn pill-btn-dark" id="btn-apply-all-import" style="width:100%;justify-content:center;padding:12px 20px;">
+        Apply & Visualize Workspace
       </button>
     </div>
   </div>
 
+  <!-- ============ KEYBOARD SHORTCUTS MODAL ============ -->
+  <div class="shortcuts-overlay hidden" id="shortcuts-overlay">
+    <div class="shortcuts-card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;">
+        <h3 class="card-headline-uppercase" style="margin:0;">KEYBOARD SHORTCUTS</h3>
+        <button id="btn-close-shortcuts" class="drawer-close-circle" aria-label="Close shortcuts modal">✕</button>
+      </div>
+
+      <div class="shortcut-row">
+        <span class="shortcut-desc">Zoom In / Out Graph</span>
+        <div class="shortcut-keys-group">
+          <kbd class="kbd-badge">+</kbd>
+          <kbd class="kbd-badge">−</kbd>
+        </div>
+      </div>
+      <div class="shortcut-row">
+        <span class="shortcut-desc">Fit Graph to Screen</span>
+        <div class="shortcut-keys-group">
+          <kbd class="kbd-badge">0</kbd>
+          <kbd class="kbd-badge">F</kbd>
+        </div>
+      </div>
+      <div class="shortcut-row">
+        <span class="shortcut-desc">Reset Graph & Deselect</span>
+        <div class="shortcut-keys-group">
+          <kbd class="kbd-badge">R</kbd>
+        </div>
+      </div>
+      <div class="shortcut-row">
+        <span class="shortcut-desc">Navigate Findings List</span>
+        <div class="shortcut-keys-group">
+          <kbd class="kbd-badge">↓</kbd>
+          <kbd class="kbd-badge">↑</kbd>
+          <span style="font-size:0.75rem;color:var(--text-muted);align-self:center;">or</span>
+          <kbd class="kbd-badge">J</kbd>
+          <kbd class="kbd-badge">K</kbd>
+        </div>
+      </div>
+      <div class="shortcut-row">
+        <span class="shortcut-desc">Open Finding Detail Drawer</span>
+        <div class="shortcut-keys-group">
+          <kbd class="kbd-badge">Enter</kbd>
+        </div>
+      </div>
+      <div class="shortcut-row">
+        <span class="shortcut-desc">Filter Severity (All / Crit / High / Med / Low)</span>
+        <div class="shortcut-keys-group">
+          <kbd class="kbd-badge">1</kbd>
+          <kbd class="kbd-badge">2</kbd>
+          <kbd class="kbd-badge">3</kbd>
+          <kbd class="kbd-badge">4</kbd>
+          <kbd class="kbd-badge">5</kbd>
+        </div>
+      </div>
+      <div class="shortcut-row">
+        <span class="shortcut-desc">Open Import / Parser Graph Dialog</span>
+        <div class="shortcut-keys-group">
+          <kbd class="kbd-badge">I</kbd>
+        </div>
+      </div>
+      <div class="shortcut-row">
+        <span class="shortcut-desc">Close Modals & Drawers</span>
+        <div class="shortcut-keys-group">
+          <kbd class="kbd-badge">Esc</kbd>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Box -->
+  <div class="toast-notification" id="toast-box"></div>
+
   <!-- Application Scripts -->
-  <script src="js/graph.js?v=editorial-pastel-2"></script>
-  <script src="js/scorecards.js?v=editorial-pastel-2"></script>
-  <script src="js/detail-modal.js?v=editorial-pastel-2"></script>
-  <script src="js/app.js?v=editorial-pastel-2"></script>
+  <script src="js/graph.js?v=editorial-pastel-3"></script>
+  <script src="js/scorecards.js?v=editorial-pastel-3"></script>
+  <script src="js/detail-modal.js?v=editorial-pastel-3"></script>
+  <script src="js/app.js?v=editorial-pastel-3"></script>
 </body>
 </html>
