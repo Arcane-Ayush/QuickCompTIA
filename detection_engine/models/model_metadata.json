@@ -1,0 +1,39 @@
+{
+  "model_type": "RandomForestClassifier",
+  "num_estimators": 100,
+  "max_depth": 6,
+  "metrics": {
+    "accuracy": 1.0,
+    "precision": 1.0,
+    "recall": 1.0,
+    "f1": 1.0
+  },
+  "feature_names": [
+    "has_wildcard_action",
+    "has_wildcard_resource",
+    "passrole_count",
+    "create_policy_version_count",
+    "assume_role_count",
+    "ec2_run_instances_count",
+    "is_cross_account",
+    "shortest_path_to_admin",
+    "downstream_reachable_nodes",
+    "in_degree",
+    "out_degree",
+    "has_condition_constraints"
+  ],
+  "feature_importances": {
+    "downstream_reachable_nodes": 0.31109766651063303,
+    "shortest_path_to_admin": 0.28469058825364424,
+    "out_degree": 0.24928337839619863,
+    "has_condition_constraints": 0.06315505885914921,
+    "create_policy_version_count": 0.03153387578730772,
+    "has_wildcard_resource": 0.031030668794686127,
+    "assume_role_count": 0.01919967638413552,
+    "is_cross_account": 0.003854646744282281,
+    "has_wildcard_action": 0.002311573508293378,
+    "ec2_run_instances_count": 0.0014839397582077562,
+    "in_degree": 0.0014103615630167963,
+    "passrole_count": 0.0009485654404454139
+  }
+}

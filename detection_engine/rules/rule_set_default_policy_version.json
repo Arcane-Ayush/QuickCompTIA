@@ -1,0 +1,19 @@
+{
+  "id": "RULE-003",
+  "name": "SetDefaultPolicyVersion rollback escalation",
+  "type": "known_pattern",
+  "description": "Principal has iam:SetDefaultPolicyVersion permission, enabling activation of an older, deprecated policy version that contains broad or administrative permissions.",
+  "required_actions": [
+    ["iam:SetDefaultPolicyVersion"]
+  ],
+  "base_exploit_triviality": 0.85,
+  "default_reachability": 0.85,
+  "default_blast_radius": 0.90,
+  "mitre_technique": "T1098",
+  "remediation_template": {
+    "action": "iam:GetPolicyVersion",
+    "resource": "arn:aws:iam::{account_id}:policy/*",
+    "condition": null,
+    "justification": "Replaces mutable default-version switching with read-only inspection, preventing reactivation of vulnerable legacy policy versions."
+  }
+}
