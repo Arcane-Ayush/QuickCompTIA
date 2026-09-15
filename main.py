@@ -99,9 +99,15 @@ def main():
     """Main CLI entry point."""
     parser = argparse.ArgumentParser(description="Cloud IAM Misconfiguration Detector Pipeline")
     parser.add_argument(
+        "pos_input",
+        nargs="?",
+        default=None,
+        help="Path to raw IAM authorization JSON file (positional argument)"
+    )
+    parser.add_argument(
         "--input",
         "-i",
-        default="sample_data/iam_export_sample.json",
+        default=None,
         help="Path to raw IAM authorization JSON file",
     )
     parser.add_argument(
@@ -123,8 +129,9 @@ def main():
     )
 
     args = parser.parse_args()
+    input_file = args.pos_input or args.input or "sample_data/iam_export_sample.json"
     run_pipeline(
-        input_iam_path=args.input,
+        input_iam_path=input_file,
         out_dir=args.outdir,
         train_ml=args.train,
         sync_dashboard=not args.no_sync,
