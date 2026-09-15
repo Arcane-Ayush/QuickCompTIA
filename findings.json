@@ -1,0 +1,243 @@
+{
+  "findings": [
+    {
+      "finding_id": "F-002",
+      "type": "known_pattern",
+      "pattern_name": "CreatePolicyVersion self-privilege escalation",
+      "path": [
+        "arn:aws:iam::111111111111:user/ops-bob",
+        "arn:aws:iam::111111111111:policy/OpsPolicyVersionPrivesc",
+        "arn:aws:iam::111111111111:role/AdminRole"
+      ],
+      "risk_score": 77.3,
+      "risk_breakdown": {
+        "reachability": 0.95,
+        "blast_radius": 0.98,
+        "exploit_triviality": 0.83
+      },
+      "narrative": "ops-bob can escalate directly to administrator by using iam:CreatePolicyVersion on attached policy OpsPolicyVersionPrivesc to author a new default version with Action: * and Resource: *.",
+      "offending_statement": {
+        "policy_arn": "arn:aws:iam::111111111111:policy/OpsPolicyVersionPrivesc",
+        "action": "iam:CreatePolicyVersion",
+        "resource": "arn:aws:iam::111111111111:policy/OpsPolicyVersionPrivesc"
+      }
+    },
+    {
+      "finding_id": "F-001",
+      "type": "known_pattern",
+      "pattern_name": "PassRole+RunInstances credential theft",
+      "path": [
+        "arn:aws:iam::111111111111:user/dev-alice",
+        "arn:aws:iam::111111111111:role/EC2AppRole",
+        "arn:aws:iam::111111111111:role/AdminRole"
+      ],
+      "risk_score": 68.2,
+      "risk_breakdown": {
+        "reachability": 0.92,
+        "blast_radius": 0.95,
+        "exploit_triviality": 0.78
+      },
+      "narrative": "dev-alice can become full administrator in 2 hops: launches an EC2 instance with EC2AppRole, which possesses unrestricted iam:PassRole targeting AdminRole.",
+      "offending_statement": {
+        "policy_arn": "arn:aws:iam::111111111111:policy/DevEC2Policy",
+        "action": "iam:PassRole",
+        "resource": "*"
+      }
+    },
+    {
+      "finding_id": "F-003",
+      "type": "known_pattern",
+      "pattern_name": "Cross-account role assumption pivot",
+      "path": [
+        "arn:aws:iam::111111111111:user/contractor-carol",
+        "arn:aws:iam::222222222222:role/CrossAccountDeployRole",
+        "arn:aws:iam::222222222222:role/OrgAdminRole"
+      ],
+      "risk_score": 62.0,
+      "risk_breakdown": {
+        "reachability": 0.88,
+        "blast_radius": 0.94,
+        "exploit_triviality": 0.75
+      },
+      "narrative": "contractor-carol pivots across account boundaries from 111111111111 to 222222222222 by assuming CrossAccountDeployRole, which in turn assumes administrative role OrgAdminRole.",
+      "offending_statement": {
+        "policy_arn": "arn:aws:iam::111111111111:policy/ContractorCrossAccountPolicy",
+        "action": "sts:AssumeRole",
+        "resource": "arn:aws:iam::222222222222:role/CrossAccountDeployRole"
+      }
+    },
+    {
+      "finding_id": "F-004",
+      "type": "known_pattern",
+      "pattern_name": "SetDefaultPolicyVersion rollback escalation",
+      "path": [
+        "arn:aws:iam::111111111111:user/qa-eve",
+        "arn:aws:iam::111111111111:policy/QAPolicyVersionSwitch",
+        "arn:aws:iam::111111111111:role/AdminRole"
+      ],
+      "risk_score": 58.9,
+      "risk_breakdown": {
+        "reachability": 0.85,
+        "blast_radius": 0.9,
+        "exploit_triviality": 0.77
+      },
+      "narrative": "qa-eve can switch the active policy version of QAPolicyVersionSwitch to a pre-existing unmanaged version that grants wildcard privileges.",
+      "offending_statement": {
+        "policy_arn": "arn:aws:iam::111111111111:policy/QAPolicyVersionSwitch",
+        "action": "iam:SetDefaultPolicyVersion",
+        "resource": "arn:aws:iam::111111111111:policy/QAPolicyVersionSwitch"
+      }
+    },
+    {
+      "finding_id": "F-005",
+      "type": "wildcard_overpermission",
+      "pattern_name": "Wildcard service-level overpermission",
+      "path": [
+        "arn:aws:iam::111111111111:user/analyst-dave",
+        "arn:aws:iam::111111111111:policy/AnalystWildcardS3Policy"
+      ],
+      "risk_score": 58.1,
+      "risk_breakdown": {
+        "reachability": 0.95,
+        "blast_radius": 0.85,
+        "exploit_triviality": 0.72
+      },
+      "narrative": "analyst-dave has unrestricted wildcard action s3:* on all resources (*), allowing arbitrary data exfiltration, bucket tampering, and deletion across the entire account.",
+      "offending_statement": {
+        "policy_arn": "arn:aws:iam::111111111111:policy/AnalystWildcardS3Policy",
+        "action": "s3:*",
+        "resource": "*"
+      }
+    },
+    {
+      "finding_id": "F-007",
+      "type": "novel_path",
+      "pattern_name": "Multi-hop privilege escalation path",
+      "path": [
+        "arn:aws:iam::111111111111:role/EC2AppRole",
+        "arn:aws:iam::111111111111:role/AdminRole"
+      ],
+      "risk_score": 40.9,
+      "risk_breakdown": {
+        "reachability": 0.85,
+        "blast_radius": 0.65,
+        "exploit_triviality": 0.74
+      },
+      "narrative": "Generic multi-hop escalation path detected: EC2AppRole reaches administrator target AdminRole across 1 hops via AdminRole.",
+      "offending_statement": {
+        "policy_arn": "arn:aws:iam::111111111111:policy/PassRoleToAdminPolicy",
+        "action": "sts:AssumeRole",
+        "resource": "arn:aws:iam::111111111111:role/AdminRole"
+      }
+    },
+    {
+      "finding_id": "F-009",
+      "type": "novel_path",
+      "pattern_name": "Multi-hop privilege escalation path",
+      "path": [
+        "arn:aws:iam::222222222222:role/CrossAccountDeployRole",
+        "arn:aws:iam::222222222222:role/OrgAdminRole"
+      ],
+      "risk_score": 40.9,
+      "risk_breakdown": {
+        "reachability": 0.85,
+        "blast_radius": 0.65,
+        "exploit_triviality": 0.74
+      },
+      "narrative": "Generic multi-hop escalation path detected: CrossAccountDeployRole reaches administrator target OrgAdminRole across 1 hops via OrgAdminRole.",
+      "offending_statement": {
+        "policy_arn": "arn:aws:iam::222222222222:policy/AssumeOrgAdminPolicy",
+        "action": "sts:AssumeRole",
+        "resource": "arn:aws:iam::222222222222:role/OrgAdminRole"
+      }
+    },
+    {
+      "finding_id": "F-006",
+      "type": "novel_path",
+      "pattern_name": "Multi-hop privilege escalation path",
+      "path": [
+        "arn:aws:iam::111111111111:role/EC2AppRole",
+        "arn:aws:iam::111111111111:role/AdminRole",
+        "arn:aws:iam::222222222222:role/OrgAdminRole"
+      ],
+      "risk_score": 32.3,
+      "risk_breakdown": {
+        "reachability": 0.7,
+        "blast_radius": 0.65,
+        "exploit_triviality": 0.71
+      },
+      "narrative": "Generic multi-hop escalation path detected: EC2AppRole reaches administrator target OrgAdminRole across 2 hops via AdminRole.",
+      "offending_statement": {
+        "policy_arn": "arn:aws:iam::111111111111:policy/PassRoleToAdminPolicy",
+        "action": "sts:AssumeRole",
+        "resource": "arn:aws:iam::111111111111:role/AdminRole"
+      }
+    },
+    {
+      "finding_id": "F-010",
+      "type": "novel_path",
+      "pattern_name": "Multi-hop privilege escalation path",
+      "path": [
+        "arn:aws:iam::222222222222:role/CrossAccountDeployRole",
+        "arn:aws:iam::222222222222:role/OrgAdminRole",
+        "arn:aws:iam::111111111111:role/AdminRole"
+      ],
+      "risk_score": 32.3,
+      "risk_breakdown": {
+        "reachability": 0.7,
+        "blast_radius": 0.65,
+        "exploit_triviality": 0.71
+      },
+      "narrative": "Generic multi-hop escalation path detected: CrossAccountDeployRole reaches administrator target AdminRole across 2 hops via OrgAdminRole.",
+      "offending_statement": {
+        "policy_arn": "arn:aws:iam::222222222222:policy/AssumeOrgAdminPolicy",
+        "action": "sts:AssumeRole",
+        "resource": "arn:aws:iam::222222222222:role/OrgAdminRole"
+      }
+    },
+    {
+      "finding_id": "F-011",
+      "type": "novel_path",
+      "pattern_name": "Multi-hop privilege escalation path",
+      "path": [
+        "arn:aws:iam::222222222222:role/CrossAccountDeployRole",
+        "arn:aws:iam::222222222222:role/OrgAdminRole",
+        "arn:aws:iam::aws:policy/AdministratorAccess"
+      ],
+      "risk_score": 32.3,
+      "risk_breakdown": {
+        "reachability": 0.7,
+        "blast_radius": 0.65,
+        "exploit_triviality": 0.71
+      },
+      "narrative": "Generic multi-hop escalation path detected: CrossAccountDeployRole reaches administrator target AdministratorAccess across 2 hops via OrgAdminRole.",
+      "offending_statement": {
+        "policy_arn": "arn:aws:iam::222222222222:policy/AssumeOrgAdminPolicy",
+        "action": "sts:AssumeRole",
+        "resource": "arn:aws:iam::222222222222:role/OrgAdminRole"
+      }
+    },
+    {
+      "finding_id": "F-008",
+      "type": "novel_path",
+      "pattern_name": "Multi-hop privilege escalation path",
+      "path": [
+        "arn:aws:iam::111111111111:role/EC2AppRole",
+        "arn:aws:iam::111111111111:role/AdminRole",
+        "arn:aws:iam::aws:policy/AdministratorAccess"
+      ],
+      "risk_score": 31.8,
+      "risk_breakdown": {
+        "reachability": 0.7,
+        "blast_radius": 0.65,
+        "exploit_triviality": 0.7
+      },
+      "narrative": "Generic multi-hop escalation path detected: EC2AppRole reaches administrator target AdministratorAccess across 2 hops via AdminRole.",
+      "offending_statement": {
+        "policy_arn": "arn:aws:iam::111111111111:policy/PassRoleToAdminPolicy",
+        "action": "sts:AssumeRole",
+        "resource": "arn:aws:iam::111111111111:role/AdminRole"
+      }
+    }
+  ]
+}
