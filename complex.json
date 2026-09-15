@@ -1,0 +1,290 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "DeveloperComputeAccess",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:DescribeInstances",
+        "ec2:DescribeImages",
+        "ec2:DescribeSecurityGroups",
+        "ec2:DescribeSubnets",
+        "ec2:DescribeVpcs",
+        "ec2:StartInstances",
+        "ec2:StopInstances",
+        "ec2:RebootInstances"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "EC2NetworkModification",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:ModifyInstanceAttribute",
+        "ec2:ModifyNetworkInterfaceAttribute",
+        "ec2:AuthorizeSecurityGroupIngress",
+        "ec2:AuthorizeSecurityGroupEgress",
+        "ec2:RevokeSecurityGroupIngress",
+        "ec2:RevokeSecurityGroupEgress"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "S3ApplicationBuckets",
+      "Effect": "Allow",
+      "Action": [
+        "s3:ListBucket",
+        "s3:GetBucketLocation",
+        "s3:GetObject",
+        "s3:GetObjectVersion",
+        "s3:PutObject",
+        "s3:DeleteObject"
+      ],
+      "Resource": [
+        "arn:aws:s3:::company-application-data",
+        "arn:aws:s3:::company-application-data/*",
+        "arn:aws:s3:::company-build-artifacts",
+        "arn:aws:s3:::company-build-artifacts/*"
+      ]
+    },
+    {
+      "Sid": "LambdaDeployment",
+      "Effect": "Allow",
+      "Action": [
+        "lambda:GetFunction",
+        "lambda:GetFunctionConfiguration",
+        "lambda:ListVersionsByFunction",
+        "lambda:CreateFunction",
+        "lambda:UpdateFunctionCode",
+        "lambda:UpdateFunctionConfiguration",
+        "lambda:PublishVersion",
+        "lambda:CreateAlias",
+        "lambda:UpdateAlias",
+        "lambda:InvokeFunction"
+      ],
+      "Resource": "arn:aws:lambda:us-east-1:123456789012:function:application-*"
+    },
+    {
+      "Sid": "DeploymentRolePassing",
+      "Effect": "Allow",
+      "Action": [
+        "iam:PassRole"
+      ],
+      "Resource": [
+        "arn:aws:iam::123456789012:role/ApplicationLambdaRole",
+        "arn:aws:iam::123456789012:role/DeploymentRole"
+      ],
+      "Condition": {
+        "StringEquals": {
+          "iam:PassedToService": "lambda.amazonaws.com"
+        }
+      }
+    },
+    {
+      "Sid": "AssumeDeploymentRoles",
+      "Effect": "Allow",
+      "Action": [
+        "sts:AssumeRole"
+      ],
+      "Resource": [
+        "arn:aws:iam::123456789012:role/DeploymentRole",
+        "arn:aws:iam::123456789012:role/StagingDeploymentRole"
+      ]
+    },
+    {
+      "Sid": "DynamoDBApplicationAccess",
+      "Effect": "Allow",
+      "Action": [
+        "dynamodb:GetItem",
+        "dynamodb:BatchGetItem",
+        "dynamodb:PutItem",
+        "dynamodb:UpdateItem",
+        "dynamodb:DeleteItem",
+        "dynamodb:Query",
+        "dynamodb:Scan"
+      ],
+      "Resource": [
+        "arn:aws:dynamodb:us-east-1:123456789012:table/ApplicationUsers",
+        "arn:aws:dynamodb:us-east-1:123456789012:table/ApplicationSessions",
+        "arn:aws:dynamodb:us-east-1:123456789012:table/ApplicationData",
+        "arn:aws:dynamodb:us-east-1:123456789012:table/ApplicationData/index/*"
+      ]
+    },
+    {
+      "Sid": "CloudWatchOperations",
+      "Effect": "Allow",
+      "Action": [
+        "logs:CreateLogGroup",
+        "logs:CreateLogStream",
+        "logs:PutLogEvents",
+        "logs:GetLogEvents",
+        "logs:DescribeLogGroups",
+        "logs:DescribeLogStreams",
+        "cloudwatch:GetMetricData",
+        "cloudwatch:ListMetrics"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "ReadSecrets",
+      "Effect": "Allow",
+      "Action": [
+        "secretsmanager:DescribeSecret",
+        "secretsmanager:GetSecretValue"
+      ],
+      "Resource": [
+        "arn:aws:secretsmanager:us-east-1:123456789012:secret:application/*",
+        "arn:aws:secretsmanager:us-east-1:123456789012:secret:staging/*"
+      ],
+      "Condition": {
+        "StringEquals": {
+          "aws:RequestedRegion": "us-east-1"
+        }
+      }
+    },
+    {
+      "Sid": "KMSApplicationKeys",
+      "Effect": "Allow",
+      "Action": [
+        "kms:Decrypt",
+        "kms:Encrypt",
+        "kms:GenerateDataKey",
+        "kms:DescribeKey"
+      ],
+      "Resource": [
+        "arn:aws:kms:us-east-1:123456789012:key/11111111-2222-3333-4444-555555555555",
+        "arn:aws:kms:us-east-1:123456789012:key/aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+      ]
+    },
+    {
+      "Sid": "ECRContainerOperations",
+      "Effect": "Allow",
+      "Action": [
+        "ecr:GetAuthorizationToken",
+        "ecr:BatchCheckLayerAvailability",
+        "ecr:GetDownloadUrlForLayer",
+        "ecr:BatchGetImage",
+        "ecr:PutImage",
+        "ecr:InitiateLayerUpload",
+        "ecr:UploadLayerPart",
+        "ecr:CompleteLayerUpload"
+      ],
+      "Resource": [
+        "arn:aws:ecr:us-east-1:123456789012:repository/application",
+        "arn:aws:ecr:us-east-1:123456789012:repository/application-*"
+      ]
+    },
+    {
+      "Sid": "SSMInstanceManagement",
+      "Effect": "Allow",
+      "Action": [
+        "ssm:DescribeInstanceInformation",
+        "ssm:GetCommandInvocation",
+        "ssm:SendCommand",
+        "ssm:StartSession"
+      ],
+      "Resource": [
+        "arn:aws:ec2:us-east-1:123456789012:instance/i-*"
+      ],
+      "Condition": {
+        "StringEquals": {
+          "aws:RequestedRegion": "us-east-1"
+        }
+      }
+    },
+    {
+      "Sid": "RestrictedIAMReadAccess",
+      "Effect": "Allow",
+      "Action": [
+        "iam:GetRole",
+        "iam:GetPolicy",
+        "iam:GetPolicyVersion",
+        "iam:ListRoles",
+        "iam:ListPolicies",
+        "iam:ListRolePolicies",
+        "iam:ListAttachedRolePolicies"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "PreventProductionDeletion",
+      "Effect": "Deny",
+      "Action": [
+        "ec2:TerminateInstances",
+        "s3:DeleteBucket",
+        "dynamodb:DeleteTable",
+        "lambda:DeleteFunction",
+        "secretsmanager:DeleteSecret",
+        "iam:DeleteRole",
+        "iam:DeletePolicy"
+      ],
+      "Resource": "*",
+      "Condition": {
+        "StringEquals": {
+          "aws:ResourceTag/Environment": "production"
+        }
+      }
+    },
+    {
+      "Sid": "DenyOutsideApprovedRegions",
+      "Effect": "Deny",
+      "NotAction": [
+        "iam:*",
+        "sts:GetCallerIdentity",
+        "route53:*",
+        "cloudfront:*"
+      ],
+      "Resource": "*",
+      "Condition": {
+        "StringNotEquals": {
+          "aws:RequestedRegion": [
+            "us-east-1",
+            "us-west-2"
+          ]
+        }
+      }
+    },
+    {
+      "Sid": "DenyAccessWithoutMFA",
+      "Effect": "Deny",
+      "Action": [
+        "ec2:*",
+        "s3:*",
+        "lambda:*",
+        "dynamodb:*",
+        "secretsmanager:*"
+      ],
+      "Resource": "*",
+      "Condition": {
+        "BoolIfExists": {
+          "aws:MultiFactorAuthPresent": "false"
+        }
+      }
+    },
+    {
+      "Sid": "AllowBillingReadOnly",
+      "Effect": "Allow",
+      "Action": [
+        "aws-portal:ViewBilling",
+        "aws-portal:ViewUsage",
+        "ce:GetCostAndUsage",
+        "ce:GetCostForecast",
+        "budgets:ViewBudget"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "AllowTaggingResources",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:CreateTags",
+        "lambda:TagResource",
+        "lambda:UntagResource",
+        "s3:PutBucketTagging",
+        "dynamodb:TagResource",
+        "secretsmanager:TagResource"
+      ],
+      "Resource": "*"
+    }
+  ]
+}

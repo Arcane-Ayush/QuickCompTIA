@@ -346,6 +346,7 @@ class DetectionEngine:
                 if isinstance(actions, str):
                     actions = [actions]
                 res = stmt.get("Resource", "*")
+                res_str = ", ".join(res) if isinstance(res, list) else str(res)
 
                 # Check action types
                 has_full_admin = any(a in ["*", "*:*"] for a in actions)
@@ -371,7 +372,7 @@ class DetectionEngine:
                         "risk_score": risk_score,
                         "risk_breakdown": breakdown,
                         "narrative": narrative,
-                        "offending_statement": {"policy_arn": pol_arn, "action": "*", "resource": res}
+                        "offending_statement": {"policy_arn": pol_arn, "action": "*", "resource": res_str}
                     })
                     finding_counter += 1
                 elif service_wildcards:
@@ -391,7 +392,7 @@ class DetectionEngine:
                         "risk_score": risk_score,
                         "risk_breakdown": breakdown,
                         "narrative": narrative,
-                        "offending_statement": {"policy_arn": pol_arn, "action": svc_act, "resource": res}
+                        "offending_statement": {"policy_arn": pol_arn, "action": svc_act, "resource": res_str}
                     })
                     finding_counter += 1
                 elif is_read_only:
@@ -409,7 +410,7 @@ class DetectionEngine:
                         "risk_score": risk_score,
                         "risk_breakdown": breakdown,
                         "narrative": narrative,
-                        "offending_statement": {"policy_arn": pol_arn, "action": ", ".join(actions), "resource": res}
+                        "offending_statement": {"policy_arn": pol_arn, "action": ", ".join(actions) if isinstance(actions, list) else str(actions), "resource": res_str}
                     })
                     finding_counter += 1
 
