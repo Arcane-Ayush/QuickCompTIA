@@ -325,6 +325,51 @@ class DetectionEngine:
                     })
                     finding_counter += 1
 
+        # 5b. Match Admin & Full Wildcard Overpermission for all principals
+        for n in self.graph_data.get("nodes", []):
+            arn = n["id"]
+            user_name = n.get("name", "User")
+            if n.get("is_admin_equivalent", False) and n.get("type") in ["user", "role"]:
+                already_flagged = any(f.get("path") and f["path"][0] == arn and f.get("type") == "wildcard_overpermission" for f in findings)
+                if not already_flagged:
+                    pol_arn = n["attached_policies"][0] if n.get("attached_policies") else f"{arn}:policy/inline"
+                    path = [arn, pol_arn]
+                    features = self.scorer.extract_features(
+                        principal_arn=arn,
+                        path=path,
+                        shortest_path_dist=1,
+                        downstream_nodes=10,
+                        actions_present=["*"],
+                        resources_present=["*"],
+                        has_conditions=False,
+                        is_cross_account=False,
+                    )
+                    risk_score, breakdown = self.scorer.score_vector(
+                        features,
+                        base_exploit_triviality=0.95,
+                        base_reachability=0.98,
+                        base_blast_radius=0.98,
+                    )
+                    narrative = (
+                        f"{user_name} is granted unrestricted full administrative privileges (*:*) via policy {pol_arn.split('/')[-1]}, "
+                        f"violating the principle of least privilege."
+                    )
+                    findings.append({
+                        "finding_id": f"F-{finding_counter:03d}",
+                        "type": "wildcard_overpermission",
+                        "pattern_name": "Full Administrative Wildcard (*:*) Overpermission",
+                        "path": path,
+                        "risk_score": risk_score,
+                        "risk_breakdown": breakdown,
+                        "narrative": narrative,
+                        "offending_statement": {
+                            "policy_arn": pol_arn,
+                            "action": "*",
+                            "resource": "*",
+                        },
+                    })
+                    finding_counter += 1
+
         # 6. Novel Attack Paths from Pathfinder
         novel_paths = self.pathfinder.find_all_novel_escalation_paths(known_paths)
         for np_item in novel_paths:

@@ -80,12 +80,59 @@ class IAMParser:
     """Parses AWS GetAccountAuthorizationDetails export into principals, policies, and statements."""
 
     def __init__(self, raw_data: Dict[str, Any]):
-        """Initializes parser with raw authorization details dict."""
-        self.raw_data = raw_data
-        self.users: List[Dict[str, Any]] = raw_data.get("UserDetailList", [])
-        self.roles: List[Dict[str, Any]] = raw_data.get("RoleDetailList", [])
-        self.groups: List[Dict[str, Any]] = raw_data.get("GroupDetailList", [])
-        self.managed_policies: List[Dict[str, Any]] = raw_data.get("Policies", [])
+        """Initializes parser with raw authorization details dict or standalone IAM policy document."""
+        self.raw_data = raw_data or {}
+        
+        # Standalone IAM Policy Document auto-wrapping
+        if "Statement" in self.raw_data or "Version" in self.raw_data:
+            synthetic_policy_arn = "arn:aws:iam::111111111111:policy/CustomPolicy"
+            self.managed_policies = [
+                {
+                    "Arn": synthetic_policy_arn,
+                    "PolicyName": "CustomPolicy",
+                    "PolicyId": "ANPA111111111111CUSTOM",
+                    "Path": "/",
+                    "DefaultVersionId": "v1",
+                    "AttachmentCount": 1,
+                    "IsAttachable": True,
+                    "PolicyVersionList": [
+                        {
+                            "Document": self.raw_data,
+                            "VersionId": "v1",
+                            "IsDefaultVersion": True
+                        }
+                    ]
+                }
+            ]
+            self.users = [
+                {
+                    "Arn": "arn:aws:iam::111111111111:user/custom-policy-user",
+                    "UserName": "custom-policy-user",
+                    "UserId": "AIDA111111111111CUSTOM",
+                    "Path": "/",
+                    "AttachedManagedPolicies": [
+                        {"PolicyArn": synthetic_policy_arn, "PolicyName": "CustomPolicy"}
+                    ]
+                }
+            ]
+            self.roles = []
+            self.groups = []
+        elif "UserName" in self.raw_data and "UserDetailList" not in self.raw_data:
+            self.users = [self.raw_data]
+            self.roles = []
+            self.groups = []
+            self.managed_policies = []
+        elif "RoleName" in self.raw_data and "RoleDetailList" not in self.raw_data:
+            self.users = []
+            self.roles = [self.raw_data]
+            self.groups = []
+            self.managed_policies = []
+        else:
+            self.users = self.raw_data.get("UserDetailList", [])
+            self.roles = self.raw_data.get("RoleDetailList", [])
+            self.groups = self.raw_data.get("GroupDetailList", [])
+            self.managed_policies = self.raw_data.get("Policies", [])
+
         self.policy_doc_lookup: Dict[str, Dict[str, Any]] = {}
         self._index_managed_policies()
 
