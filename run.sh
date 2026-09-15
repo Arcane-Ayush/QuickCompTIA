@@ -6,8 +6,6 @@ echo "   Cloud IAM Misconfiguration Detector — Unified Application"
 echo "================================================================="
 echo ""
 
-# Ensure dependencies are installed
 pip install -r requirements.txt --quiet
-
-# Execute full pipeline end-to-end and launch browser
-python app.py --open-browser "$@"
+python main.py "$@"
+python dashboard_ui/server.py --port 8080

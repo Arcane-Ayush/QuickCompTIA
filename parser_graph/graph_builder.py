@@ -1,272 +1,250 @@
 """
-graph_builder.py — Person 1 (Parser & Graph Builder)
-Constructs a directed NetworkX graph from parsed IAM entities.
-Nodes = users / roles / groups / policies / resources.
-Edges = policy_attachment, group_membership, sts:AssumeRole, iam:PassRole.
-Each edge carries 'permission', 'condition', and 'is_wildcard_resource'.
+Graph Builder Module — NetworkX Directed IAM Graph Construction & Export
+Person 1 Module — /parser_graph/graph_builder.py
 """
 
+import json
+import re
+from typing import Any, Dict, List, Optional, Set
 import networkx as nx
 
-
-# ---------------------------------------------------------------------------
-# Main builder
-# ---------------------------------------------------------------------------
-
-def build_graph(
-    users: list[dict],
-    roles: list[dict],
-    groups: list[dict],
-    policy_map: dict[str, dict],
-    admin_map: dict[str, bool],
-) -> nx.DiGraph:
-    """
-    Build and return the full IAM privilege graph.
-
-    Args:
-        users:      Cleaned user records from parser.extract_users()
-        roles:      Cleaned role records from parser.extract_roles()
-        groups:     Cleaned group records from parser.extract_groups()
-        policy_map: ARN → policy record from parser.extract_policies()
-        admin_map:  ARN → bool from parser.compute_is_admin_equivalent()
-
-    Returns:
-        nx.DiGraph where each node has attributes stored in the graph's
-        node data and each edge has 'permission', 'condition',
-        'is_wildcard_resource'.
-    """
-    G = nx.DiGraph()
-
-    _add_user_nodes(G, users, admin_map)
-    _add_role_nodes(G, roles, admin_map)
-    _add_group_nodes(G, groups)
-    _add_policy_nodes(G, policy_map)
-
-    _add_group_membership_edges(G, users)
-    _add_policy_attachment_edges(G, users, roles, groups)
-    _add_assume_role_edges(G, roles)
-    _add_pass_role_edges(G, users, roles, groups, policy_map)
-
-    return G
+from .parser import IAMParser, NormalizedStatement
 
 
-# ---------------------------------------------------------------------------
-# Node adders
-# ---------------------------------------------------------------------------
-
-def _add_user_nodes(G: nx.DiGraph, users: list[dict], admin_map: dict[str, bool]) -> None:
-    """Add one node per IAM user."""
-    for u in users:
-        G.add_node(
-            u["arn"],
-            type="user",
-            account_id=u["account_id"],
-            name=u["name"],
-            attached_policies=u["attached_policies"],
-            is_admin_equivalent=admin_map.get(u["arn"], False),
-        )
+def extract_account_id(arn: str) -> str:
+    """Extracts the 12-digit AWS account ID from an ARN, defaulting to 111111111111."""
+    match = re.search(r":(\d{12}):", arn)
+    return match.group(1) if match else "111111111111"
 
 
-def _add_role_nodes(G: nx.DiGraph, roles: list[dict], admin_map: dict[str, bool]) -> None:
-    """Add one node per IAM role."""
-    for r in roles:
-        G.add_node(
-            r["arn"],
-            type="role",
-            account_id=r["account_id"],
-            name=r["name"],
-            attached_policies=r["attached_policies"],
-            is_admin_equivalent=admin_map.get(r["arn"], False),
-        )
+class IAMGraphBuilder:
+    """Constructs a directed graph representing IAM principals, relations, and permissions."""
 
+    def __init__(self, parser: IAMParser):
+        """Initializes builder with an IAMParser instance."""
+        self.parser = parser
+        self.graph = nx.DiGraph()
+        self.accounts: Set[str] = set()
 
-def _add_group_nodes(G: nx.DiGraph, groups: list[dict]) -> None:
-    """Add one node per IAM group."""
-    for g in groups:
-        G.add_node(
-            g["arn"],
-            type="group",
-            account_id=g["account_id"],
-            name=g["name"],
-            attached_policies=g["attached_policies"],
-            is_admin_equivalent=False,
-        )
+    def build_graph(self) -> nx.DiGraph:
+        """Constructs and returns the directed NetworkX graph."""
+        # 1. Add Users
+        for u in self.parser.users:
+            arn = u["Arn"]
+            acc = extract_account_id(arn)
+            self.accounts.add(acc)
+            is_admin = self.parser.is_admin_equivalent(u)
+            attached = [p["PolicyArn"] for p in u.get("AttachedManagedPolicies", [])]
+            self.graph.add_node(
+                arn,
+                id=arn,
+                type="user",
+                account_id=acc,
+                name=u.get("UserName", arn.split("/")[-1]),
+                attached_policies=attached,
+                is_admin_equivalent=is_admin,
+            )
 
+        # 2. Add Roles
+        for r in self.parser.roles:
+            arn = r["Arn"]
+            acc = extract_account_id(arn)
+            self.accounts.add(acc)
+            is_admin = self.parser.is_admin_equivalent(r)
+            attached = [p["PolicyArn"] for p in r.get("AttachedManagedPolicies", [])]
+            self.graph.add_node(
+                arn,
+                id=arn,
+                type="role",
+                account_id=acc,
+                name=r.get("RoleName", arn.split("/")[-1]),
+                attached_policies=attached,
+                is_admin_equivalent=is_admin,
+            )
 
-def _add_policy_nodes(G: nx.DiGraph, policy_map: dict[str, dict]) -> None:
-    """Add one node per managed IAM policy."""
-    for arn, pol in policy_map.items():
-        G.add_node(
-            arn,
-            type="policy",
-            account_id=pol["account_id"],
-            name=pol["name"],
-            attached_policies=[],
-            is_admin_equivalent=False,
-        )
+        # 3. Add Groups
+        for g in self.parser.groups:
+            arn = g["Arn"]
+            acc = extract_account_id(arn)
+            self.accounts.add(acc)
+            attached = [p["PolicyArn"] for p in g.get("AttachedManagedPolicies", [])]
+            self.graph.add_node(
+                arn,
+                id=arn,
+                type="group",
+                account_id=acc,
+                name=g.get("GroupName", arn.split("/")[-1]),
+                attached_policies=attached,
+                is_admin_equivalent=False,
+            )
 
-
-# ---------------------------------------------------------------------------
-# Edge adders
-# ---------------------------------------------------------------------------
-
-def _add_group_membership_edges(G: nx.DiGraph, users: list[dict]) -> None:
-    """Add group_membership edges: user → group for every group the user belongs to."""
-    for u in users:
-        for group_name in u.get("groups", []):
-            # Find the group ARN from graph nodes
-            group_arn = _find_group_arn_by_name(G, group_name)
-            if group_arn:
-                G.add_edge(
-                    u["arn"],
-                    group_arn,
-                    permission="group_membership",
-                    condition=None,
-                    is_wildcard_resource=False,
-                )
-
-
-def _add_policy_attachment_edges(
-    G: nx.DiGraph,
-    users: list[dict],
-    roles: list[dict],
-    groups: list[dict],
-) -> None:
-    """Add policy_attachment edges: principal → policy for every attached managed policy."""
-    for entity in [*users, *roles, *groups]:
-        for parn in entity.get("attached_policies", []):
-            if G.has_node(parn):
-                G.add_edge(
-                    entity["arn"],
-                    parn,
-                    permission="policy_attachment",
-                    condition=None,
-                    is_wildcard_resource=False,
-                )
-
-
-def _add_assume_role_edges(G: nx.DiGraph, roles: list[dict]) -> None:
-    """
-    Add sts:AssumeRole edges derived from each role's trust policy.
-    Direction: trusted_principal → role (the principal CAN assume the role).
-    """
-    for role in roles:
-        for stmt in role.get("trust_statements", []):
-            if stmt["effect"] != "Allow":
-                continue
-            if not _has_action(stmt["actions"], "sts:AssumeRole"):
-                continue
-            principals = stmt.get("principal") or []
-            for principal_arn in principals:
-                # Resolve AWS root ARNs to account-level (keep as-is; Detection Engine can expand)
-                if G.has_node(principal_arn):
-                    G.add_edge(
-                        principal_arn,
-                        role["arn"],
-                        permission="sts:AssumeRole",
-                        condition=stmt.get("condition"),
-                        is_wildcard_resource="*" in stmt.get("resources", []),
-                    )
-                else:
-                    # Add a placeholder node for external / service principals
-                    G.add_node(
-                        principal_arn,
-                        type="resource",
-                        account_id=_account_from_arn(principal_arn),
-                        name=principal_arn.split(":")[-1],
-                        attached_policies=[],
-                        is_admin_equivalent=False,
-                    )
-                    G.add_edge(
-                        principal_arn,
-                        role["arn"],
-                        permission="sts:AssumeRole",
-                        condition=stmt.get("condition"),
-                        is_wildcard_resource="*" in stmt.get("resources", []),
+        # 4. Add Group Memberships
+        for u in self.parser.users:
+            u_arn = u["Arn"]
+            u_acc = extract_account_id(u_arn)
+            for grp_name in u.get("GroupList", []):
+                # Resolve group ARN
+                grp_arn = f"arn:aws:iam::{u_acc}:group/{grp_name}"
+                if grp_arn in self.graph:
+                    self.graph.add_edge(
+                        u_arn,
+                        grp_arn,
+                        permission="group_membership",
+                        condition=None,
+                        is_wildcard_resource=False,
                     )
 
+        # 5. Add Policy Attachment Edges
+        for p in self.parser.managed_policies:
+            p_arn = p["Arn"]
+            p_acc = extract_account_id(p_arn)
+            if p_acc != "aws":
+                self.accounts.add(p_acc)
+            self.graph.add_node(
+                p_arn,
+                id=p_arn,
+                type="policy",
+                account_id=p_acc,
+                name=p.get("PolicyName", p_arn.split("/")[-1]),
+                attached_policies=[],
+                is_admin_equivalent=("AdministratorAccess" in p_arn),
+            )
 
-def _add_pass_role_edges(
-    G: nx.DiGraph,
-    users: list[dict],
-    roles: list[dict],
-    groups: list[dict],
-    policy_map: dict[str, dict],
-) -> None:
-    """
-    Add iam:PassRole edges for every principal whose effective policies contain
-    an Allow iam:PassRole statement.
-
-    Direction: principal → target_resource (the Resource field of the statement).
-    If Resource is *, a synthetic 'wildcard-resource' node is used as the target
-    and is_wildcard_resource is set True.
-    """
-    for entity in [*users, *roles]:
-        all_stmts = list(entity.get("inline_policies", []))
-        for parn in entity.get("attached_policies", []):
-            pol = policy_map.get(parn)
-            if pol:
-                all_stmts.extend(pol["statements"])
-
-        for stmt in all_stmts:
-            if stmt["effect"] != "Allow":
-                continue
-            if not _has_action(stmt["actions"], "iam:PassRole"):
-                continue
-            for resource in stmt.get("resources", []):
-                is_wildcard = resource == "*"
-                target = resource if not is_wildcard else _wildcard_resource_node(G)
-                if not G.has_node(target):
-                    G.add_node(
-                        target,
-                        type="resource",
-                        account_id="unknown",
-                        name=target,
-                        attached_policies=[],
-                        is_admin_equivalent=False,
+        for entity_list in [self.parser.users, self.parser.roles, self.parser.groups]:
+            for entity in entity_list:
+                src_arn = entity["Arn"]
+                for att in entity.get("AttachedManagedPolicies", []):
+                    pol_arn = att["PolicyArn"]
+                    self.graph.add_edge(
+                        src_arn,
+                        pol_arn,
+                        permission="policy_attachment",
+                        condition=None,
+                        is_wildcard_resource=False,
                     )
-                G.add_edge(
-                    entity["arn"],
-                    target,
-                    permission="iam:PassRole",
-                    condition=stmt.get("condition"),
-                    is_wildcard_resource=is_wildcard,
-                )
+
+        # 6. Add AssumeRole Trust Edges
+        # Inspect role trust policy documents
+        for r in self.parser.roles:
+            role_arn = r["Arn"]
+            trust_doc = r.get("AssumeRolePolicyDocument", {})
+            for stmt in trust_doc.get("Statement", []):
+                if stmt.get("Effect", "") == "Allow" and stmt.get("Action") in ["sts:AssumeRole", ["sts:AssumeRole"]]:
+                    principal = stmt.get("Principal", {})
+                    cond = stmt.get("Condition")
+                    trusted_aws = principal.get("AWS")
+                    if trusted_aws:
+                        trusted_list = [trusted_aws] if isinstance(trusted_aws, str) else list(trusted_aws)
+                        for src_principal in trusted_list:
+                            if src_principal in self.graph:
+                                self.graph.add_edge(
+                                    src_principal,
+                                    role_arn,
+                                    permission="sts:AssumeRole",
+                                    condition=cond,
+                                    is_wildcard_resource=False,
+                                )
+
+        # 7. Add Permission-Based Edges (sts:AssumeRole & iam:PassRole targets from policies)
+        for entity_list in [self.parser.users, self.parser.roles]:
+            for entity in entity_list:
+                src_arn = entity["Arn"]
+                stmts = self.parser.get_principal_statements(entity)
+                for s in stmts:
+                    if not s.is_allow():
+                        continue
+
+                    # AssumeRole permission in policy
+                    if any("sts:AssumeRole" in a or a == "*" for a in s.actions):
+                        for res in s.resources:
+                            if res in self.graph and res != src_arn:
+                                self.graph.add_edge(
+                                    src_arn,
+                                    res,
+                                    permission="sts:AssumeRole",
+                                    condition=s.condition,
+                                    is_wildcard_resource=(res == "*"),
+                                )
+
+                    # PassRole permission in policy
+                    if any("iam:PassRole" in a or a == "*" for a in s.actions):
+                        for res in s.resources:
+                            if res in self.graph and res != src_arn:
+                                self.graph.add_edge(
+                                    src_arn,
+                                    res,
+                                    permission="iam:PassRole",
+                                    condition=s.condition,
+                                    is_wildcard_resource=(res == "*"),
+                                )
+                            elif res == "*":
+                                # Mark potential pass role to all roles
+                                for r in self.parser.roles:
+                                    if r["Arn"] != src_arn:
+                                        self.graph.add_edge(
+                                            src_arn,
+                                            r["Arn"],
+                                            permission="iam:PassRole",
+                                            condition=s.condition,
+                                            is_wildcard_resource=True,
+                                        )
+
+        return self.graph
+
+    def export_dict(self) -> Dict[str, Any]:
+        """Serializes the graph to the Section 2.1 JSON schema dictionary."""
+        if len(self.graph.nodes) == 0:
+            self.build_graph()
+
+        nodes_out = []
+        for n, data in self.graph.nodes(data=True):
+            nodes_out.append({
+                "id": data.get("id", n),
+                "type": data.get("type", "resource"),
+                "account_id": data.get("account_id", extract_account_id(n)),
+                "name": data.get("name", n.split("/")[-1]),
+                "attached_policies": data.get("attached_policies", []),
+                "is_admin_equivalent": bool(data.get("is_admin_equivalent", False)),
+            })
+
+        edges_out = []
+        for u, v, data in self.graph.edges(data=True):
+            edges_out.append({
+                "source": u,
+                "target": v,
+                "permission": data.get("permission", "policy_attachment"),
+                "condition": data.get("condition"),
+                "is_wildcard_resource": bool(data.get("is_wildcard_resource", False)),
+            })
+
+        # Ensure unique accounts, sorted
+        accounts_list = sorted(list(self.accounts)) if self.accounts else ["111111111111"]
+
+        return {
+            "accounts": accounts_list,
+            "nodes": nodes_out,
+            "edges": edges_out,
+        }
 
 
-# ---------------------------------------------------------------------------
-# Helpers
-# ---------------------------------------------------------------------------
+def parse_and_export(input_path: str, output_path: str) -> Dict[str, Any]:
+    """Parses raw authorization JSON and writes graph_export.json."""
+    with open(input_path, "r", encoding="utf-8") as f:
+        data = json.load(f)
 
-def _has_action(actions: list[str], target: str) -> bool:
-    """Return True if the target action is present or covered by a wildcard."""
-    target_lower = target.lower()
-    for a in actions:
-        a_lower = a.lower()
-        if a_lower == "*" or a_lower == target_lower:
-            return True
-        if a_lower.endswith(":*"):
-            service = a_lower.split(":")[0]
-            if target_lower.startswith(service + ":"):
-                return True
-    return False
+    parser = IAMParser(data)
+    builder = IAMGraphBuilder(parser)
+    graph_dict = builder.export_dict()
+
+    with open(output_path, "w", encoding="utf-8") as f:
+        json.dump(graph_dict, f, indent=2)
+
+    return graph_dict
 
 
-def _find_group_arn_by_name(G: nx.DiGraph, group_name: str) -> str | None:
-    """Find the ARN of a group node by its name attribute."""
-    for node, data in G.nodes(data=True):
-        if data.get("type") == "group" and data.get("name") == group_name:
-            return node
-    return None
-
-
-def _wildcard_resource_node(G: nx.DiGraph) -> str:
-    """Return a stable synthetic ARN for the wildcard resource target node."""
-    return "arn:aws:iam::*:resource/wildcard"
-
-
-def _account_from_arn(arn: str) -> str:
-    """Extract the 12-digit account ID from a full ARN string."""
-    parts = arn.split(":")
-    return parts[4] if len(parts) >= 5 else "unknown"
-
+if __name__ == "__main__":
+    import sys
+    inp = sys.argv[1] if len(sys.argv) > 1 else "sample_data/iam_export_sample.json"
+    out = sys.argv[2] if len(sys.argv) > 2 else "graph_export.json"
+    parse_and_export(inp, out)
+    print(f"Graph exported to {out}")

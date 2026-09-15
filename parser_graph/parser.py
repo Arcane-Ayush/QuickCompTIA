@@ -1,265 +1,133 @@
 """
-parser.py — Person 1 (Parser & Graph Builder)
-Loads a GetAccountAuthorizationDetails-style IAM JSON export and extracts
-normalized entities: users, roles, groups, policies, and policy statements.
+Parser Module — IAM Authorization Document Parser & Statement Normalizer
+Person 1 Module — /parser_graph/parser.py
 """
 
-import json
-from typing import Any
+from typing import Any, Dict, List, Optional, Tuple
 
 
-# ---------------------------------------------------------------------------
-# Data-loading
-# ---------------------------------------------------------------------------
+class NormalizedStatement:
+    """Represents a normalized IAM policy statement tuple: (Effect, Principal, Actions, Resources, Condition)."""
 
-def load_iam_export(path: str) -> dict:
-    """Load and return the raw IAM export JSON from the given file path."""
-    with open(path, "r", encoding="utf-8") as fh:
-        return json.load(fh)
+    def __init__(
+        self,
+        effect: str,
+        principal: Optional[Any],
+        actions: List[str],
+        resources: List[str],
+        condition: Optional[Dict[str, Any]],
+        source_policy_arn: str,
+    ):
+        """Initializes a normalized statement."""
+        self.effect = effect
+        self.principal = principal
+        self.actions = actions
+        self.resources = resources
+        self.condition = condition
+        self.source_policy_arn = source_policy_arn
 
+    def is_allow(self) -> bool:
+        """Returns True if statement effect is Allow."""
+        return self.effect.lower() == "allow"
 
-# ---------------------------------------------------------------------------
-# Statement normalization
-# ---------------------------------------------------------------------------
-
-def _ensure_list(value: Any) -> list:
-    """Wrap a scalar value in a list; leave lists unchanged."""
-    if isinstance(value, list):
-        return value
-    return [value]
-
-
-def normalize_statements(policy_doc: dict) -> list[dict]:
-    """
-    Convert a raw IAM policy document into a list of normalized statement tuples.
-
-    Each returned dict has keys:
-        sid        (str | None)
-        effect     ("Allow" | "Deny")
-        principal  (list[str] | None)   — None for resource-based if absent
-        actions    (list[str])
-        resources  (list[str])
-        condition  (dict | None)
-    """
-    statements = []
-    for stmt in policy_doc.get("Statement", []):
-        principal_raw = stmt.get("Principal")
-        if principal_raw is None:
-            principals = None
-        elif isinstance(principal_raw, str):
-            principals = [principal_raw]
-        elif isinstance(principal_raw, dict):
-            # {"AWS": [...], "Service": [...], ...} — flatten to flat list
-            principals = []
-            for vals in principal_raw.values():
-                principals.extend(_ensure_list(vals))
-        else:
-            principals = list(principal_raw)
-
-        action_raw = stmt.get("Action", [])
-        actions = _ensure_list(action_raw)
-
-        resource_raw = stmt.get("Resource", [])
-        resources = _ensure_list(resource_raw)
-
-        statements.append({
-            "sid": stmt.get("Sid"),
-            "effect": stmt.get("Effect", "Allow"),
-            "principal": principals,
-            "actions": actions,
-            "resources": resources,
-            "condition": stmt.get("Condition"),
-        })
-    return statements
+    def has_admin_privileges(self) -> bool:
+        """Returns True if the statement grants unrestricted admin access."""
+        if not self.is_allow():
+            return False
+        has_wildcard_action = "*" in self.actions or "*:*" in self.actions
+        has_wildcard_resource = "*" in self.resources or len(self.resources) == 0
+        return has_wildcard_action and has_wildcard_resource
 
 
-# ---------------------------------------------------------------------------
-# Entity extractors
-# ---------------------------------------------------------------------------
-
-def extract_users(raw: dict) -> list[dict]:
-    """Return a cleaned list of user records from the raw export."""
-    users = []
-    for u in raw.get("UserDetailList", []):
-        users.append({
-            "arn": u["Arn"],
-            "user_id": u["UserId"],
-            "name": u["UserName"],
-            "account_id": _account_from_arn(u["Arn"]),
-            "groups": u.get("GroupList", []),
-            "attached_policies": [
-                p["PolicyArn"] for p in u.get("AttachedManagedPolicies", [])
-            ],
-            "inline_policies": _parse_inline_policies(u.get("UserPolicyList", [])),
-        })
-    return users
+def normalize_string_or_list(val: Any) -> List[str]:
+    """Ensures a string or list is normalized to a list of strings."""
+    if val is None:
+        return []
+    if isinstance(val, str):
+        return [val]
+    if isinstance(val, list):
+        return [str(x) for x in val]
+    return [str(val)]
 
 
-def extract_roles(raw: dict) -> list[dict]:
-    """Return a cleaned list of role records including their trust policy statements."""
-    roles = []
-    for r in raw.get("RoleDetailList", []):
-        trust_doc = r.get("AssumeRolePolicyDocument", {})
-        roles.append({
-            "arn": r["Arn"],
-            "role_id": r["RoleId"],
-            "name": r["RoleName"],
-            "account_id": _account_from_arn(r["Arn"]),
-            "attached_policies": [
-                p["PolicyArn"] for p in r.get("AttachedManagedPolicies", [])
-            ],
-            "inline_policies": _parse_inline_policies(r.get("RolePolicyList", [])),
-            "trust_statements": normalize_statements(trust_doc),
-        })
-    return roles
+def extract_statements_from_doc(doc: Dict[str, Any], policy_arn: str) -> List[NormalizedStatement]:
+    """Extracts and normalizes all statements from an IAM policy document."""
+    stmts: List[NormalizedStatement] = []
+    raw_stmts = doc.get("Statement", [])
+    if isinstance(raw_stmts, dict):
+        raw_stmts = [raw_stmts]
 
-
-def extract_groups(raw: dict) -> list[dict]:
-    """Return a cleaned list of group records."""
-    groups = []
-    for g in raw.get("GroupDetailList", []):
-        groups.append({
-            "arn": g["Arn"],
-            "group_id": g["GroupId"],
-            "name": g["GroupName"],
-            "account_id": _account_from_arn(g["Arn"]),
-            "attached_policies": [
-                p["PolicyArn"] for p in g.get("AttachedManagedPolicies", [])
-            ],
-            "inline_policies": _parse_inline_policies(g.get("GroupPolicyList", [])),
-        })
-    return groups
-
-
-def extract_policies(raw: dict) -> dict[str, dict]:
-    """
-    Return a dict mapping policy ARN → policy record with normalized statements.
-    Only the default active version's statements are retained.
-    """
-    policy_map = {}
-    for p in raw.get("Policies", []):
-        arn = p["Arn"]
-        default_vid = p.get("DefaultVersionId", "v1")
-        doc = {}
-        for version in p.get("PolicyVersionList", []):
-            if version.get("VersionId") == default_vid or version.get("IsDefaultVersion"):
-                doc = version.get("Document", {})
-                break
-        policy_map[arn] = {
-            "arn": arn,
-            "name": p["PolicyName"],
-            "account_id": _account_from_arn(arn),
-            "statements": normalize_statements(doc),
-        }
-    return policy_map
-
-
-# ---------------------------------------------------------------------------
-# Admin-equivalence detection
-# ---------------------------------------------------------------------------
-
-def compute_is_admin_equivalent(
-    principal_arns: list[str],
-    users: list[dict],
-    roles: list[dict],
-    groups: list[dict],
-    policy_map: dict[str, dict],
-) -> dict[str, bool]:
-    """
-    Compute is_admin_equivalent for every principal ARN.
-
-    A principal is admin-equivalent when ANY of the following is true:
-    - It has AdministratorAccess (arn:aws:iam::aws:policy/AdministratorAccess) attached.
-    - Its effective policy set contains a statement with Effect=Allow, Action=*, Resource=*.
-    - It is in a group that satisfies either condition above.
-
-    Returns a dict mapping arn → bool.
-    """
-    # Build group → policies index
-    group_by_name: dict[str, dict] = {g["name"]: g for g in groups}
-    result: dict[str, bool] = {}
-
-    for arn in principal_arns:
-        result[arn] = _check_admin(arn, users, roles, groups, group_by_name, policy_map)
-
-    # Also compute for roles (roles can be principals in their own right)
-    for role in roles:
-        if role["arn"] not in result:
-            result[role["arn"]] = _check_admin(
-                role["arn"], users, roles, groups, group_by_name, policy_map
+    for stmt in raw_stmts:
+        effect = stmt.get("Effect", "Deny")
+        principal = stmt.get("Principal")
+        actions = normalize_string_or_list(stmt.get("Action", []))
+        resources = normalize_string_or_list(stmt.get("Resource", []))
+        condition = stmt.get("Condition")
+        stmts.append(
+            NormalizedStatement(
+                effect=effect,
+                principal=principal,
+                actions=actions,
+                resources=resources,
+                condition=condition,
+                source_policy_arn=policy_arn,
             )
+        )
+    return stmts
 
-    return result
 
+class IAMParser:
+    """Parses AWS GetAccountAuthorizationDetails export into principals, policies, and statements."""
 
-def _check_admin(
-    arn: str,
-    users: list[dict],
-    roles: list[dict],
-    groups: list[dict],
-    group_by_name: dict[str, dict],
-    policy_map: dict[str, dict],
-) -> bool:
-    """Return True if the principal identified by arn has admin-equivalent access."""
-    # Find the principal record
-    principal = None
-    for u in users:
-        if u["arn"] == arn:
-            principal = u
-            break
-    if principal is None:
-        for r in roles:
-            if r["arn"] == arn:
-                principal = r
-                break
-    if principal is None:
+    def __init__(self, raw_data: Dict[str, Any]):
+        """Initializes parser with raw authorization details dict."""
+        self.raw_data = raw_data
+        self.users: List[Dict[str, Any]] = raw_data.get("UserDetailList", [])
+        self.roles: List[Dict[str, Any]] = raw_data.get("RoleDetailList", [])
+        self.groups: List[Dict[str, Any]] = raw_data.get("GroupDetailList", [])
+        self.managed_policies: List[Dict[str, Any]] = raw_data.get("Policies", [])
+        self.policy_doc_lookup: Dict[str, Dict[str, Any]] = {}
+        self._index_managed_policies()
+
+    def _index_managed_policies(self) -> None:
+        """Indexes default document for each managed policy."""
+        for pol in self.managed_policies:
+            arn = pol.get("Arn")
+            for ver in pol.get("PolicyVersionList", []):
+                if ver.get("IsDefaultVersion", False):
+                    self.policy_doc_lookup[arn] = ver.get("Document", {})
+                    break
+
+    def get_principal_statements(self, principal: Dict[str, Any]) -> List[NormalizedStatement]:
+        """Gathers all normalized statements across inline and attached policies for a principal."""
+        statements: List[NormalizedStatement] = []
+
+        # 1. Attached managed policies
+        for att in principal.get("AttachedManagedPolicies", []):
+            arn = att.get("PolicyArn")
+            if arn in self.policy_doc_lookup:
+                statements.extend(extract_statements_from_doc(self.policy_doc_lookup[arn], arn))
+
+        # 2. Inline policies for user/role/group
+        inline_list = principal.get("UserPolicyList") or principal.get("RolePolicyList") or principal.get("GroupPolicyList") or []
+        for inline in inline_list:
+            inline_name = inline.get("PolicyName", "inline")
+            arn = f"{principal.get('Arn')}:inline/{inline_name}"
+            doc = inline.get("PolicyDocument", {})
+            statements.extend(extract_statements_from_doc(doc, arn))
+
+        return statements
+
+    def is_admin_equivalent(self, principal: Dict[str, Any]) -> bool:
+        """Computes whether a principal has effective administrator equivalency."""
+        # Direct check for AdministratorAccess attachment
+        for att in principal.get("AttachedManagedPolicies", []):
+            if "AdministratorAccess" in att.get("PolicyArn", ""):
+                return True
+
+        # Check statement permissions
+        for stmt in self.get_principal_statements(principal):
+            if stmt.has_admin_privileges():
+                return True
+
         return False
-
-    # Collect all policy ARNs this principal has (direct + via groups)
-    policy_arns = list(principal.get("attached_policies", []))
-
-    for group_name in principal.get("groups", []):
-        grp = group_by_name.get(group_name)
-        if grp:
-            policy_arns.extend(grp.get("attached_policies", []))
-
-    # Check for AdministratorAccess by ARN
-    if "arn:aws:iam::aws:policy/AdministratorAccess" in policy_arns:
-        return True
-
-    # Check all attached + inline policies for Allow *:* on *
-    all_statements: list[dict] = list(principal.get("inline_policies", []))
-    for parn in policy_arns:
-        pol = policy_map.get(parn)
-        if pol:
-            all_statements.extend(pol["statements"])
-
-    for stmt in all_statements:
-        if stmt["effect"] != "Allow":
-            continue
-        actions = stmt["actions"]
-        resources = stmt["resources"]
-        if ("*" in actions or "iam:*" in actions) and "*" in resources:
-            return True
-
-    return False
-
-
-# ---------------------------------------------------------------------------
-# Internal helpers
-# ---------------------------------------------------------------------------
-
-def _account_from_arn(arn: str) -> str:
-    """Extract the 12-digit account ID from a full ARN."""
-    parts = arn.split(":")
-    return parts[4] if len(parts) >= 5 else "unknown"
-
-
-def _parse_inline_policies(policy_list: list[dict]) -> list[dict]:
-    """Normalize a list of inline policy objects into statement tuples."""
-    statements = []
-    for pol in policy_list:
-        doc = pol.get("PolicyDocument", {})
-        statements.extend(normalize_statements(doc))
-    return statements
-

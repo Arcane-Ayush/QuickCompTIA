@@ -1,5 +1,4 @@
-"""Least-Privilege Remediation Generator module for Cloud IAM Detector."""
+"""Remediation Generator package."""
+from .generator import RemediationGenerator, remediate_and_export
 
-from .generator import RemediationGenerator
-
-__all__ = ["RemediationGenerator"]
+__all__ = ["RemediationGenerator", "remediate_and_export"]

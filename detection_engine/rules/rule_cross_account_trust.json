@@ -1,0 +1,22 @@
+{
+  "id": "RULE-004",
+  "name": "Cross-account role assumption pivot",
+  "type": "known_pattern",
+  "description": "Principal in source account can assume a role in an external destination account that possesses administrative or lateral movement privileges.",
+  "required_actions": [
+    ["sts:AssumeRole"]
+  ],
+  "requires_cross_account": true,
+  "base_exploit_triviality": 0.80,
+  "default_reachability": 0.88,
+  "default_blast_radius": 0.94,
+  "mitre_technique": "T1078.004",
+  "remediation_template": {
+    "action": "sts:AssumeRole",
+    "resource": "arn:aws:iam::{target_account}:role/{role_prefix}-*",
+    "condition": {
+      "Bool": { "aws:MultiFactorAuthPresent": "true" }
+    },
+    "justification": "Restricts cross-account assumption to specific non-admin operational roles and enforces multi-factor authentication (MFA)."
+  }
+}

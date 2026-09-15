@@ -1,0 +1,189 @@
+{
+  "accounts": ["111111111111", "222222222222"],
+  "nodes": [
+    {
+      "id": "arn:aws:iam::111111111111:user/dev-alice",
+      "type": "user",
+      "account_id": "111111111111",
+      "name": "dev-alice",
+      "attached_policies": ["arn:aws:iam::111111111111:policy/DevPolicy"],
+      "is_admin_equivalent": false
+    },
+    {
+      "id": "arn:aws:iam::111111111111:user/ops-bob",
+      "type": "user",
+      "account_id": "111111111111",
+      "name": "ops-bob",
+      "attached_policies": ["arn:aws:iam::111111111111:policy/OpsPolicy"],
+      "is_admin_equivalent": false
+    },
+    {
+      "id": "arn:aws:iam::111111111111:user/readonly-carol",
+      "type": "user",
+      "account_id": "111111111111",
+      "name": "readonly-carol",
+      "attached_policies": ["arn:aws:iam::111111111111:policy/ReadOnlyPolicy"],
+      "is_admin_equivalent": false
+    },
+    {
+      "id": "arn:aws:iam::111111111111:role/AdminRole",
+      "type": "role",
+      "account_id": "111111111111",
+      "name": "AdminRole",
+      "attached_policies": ["arn:aws:iam::aws:policy/AdministratorAccess"],
+      "is_admin_equivalent": true
+    },
+    {
+      "id": "arn:aws:iam::111111111111:role/DevRole",
+      "type": "role",
+      "account_id": "111111111111",
+      "name": "DevRole",
+      "attached_policies": ["arn:aws:iam::111111111111:policy/DevPolicy"],
+      "is_admin_equivalent": false
+    },
+    {
+      "id": "arn:aws:iam::111111111111:group/Developers",
+      "type": "group",
+      "account_id": "111111111111",
+      "name": "Developers",
+      "attached_policies": ["arn:aws:iam::111111111111:policy/DevPolicy"],
+      "is_admin_equivalent": false
+    },
+    {
+      "id": "arn:aws:iam::111111111111:policy/DevPolicy",
+      "type": "policy",
+      "account_id": "111111111111",
+      "name": "DevPolicy",
+      "attached_policies": [],
+      "is_admin_equivalent": false
+    },
+    {
+      "id": "arn:aws:iam::111111111111:policy/OpsPolicy",
+      "type": "policy",
+      "account_id": "111111111111",
+      "name": "OpsPolicy",
+      "attached_policies": [],
+      "is_admin_equivalent": false
+    },
+    {
+      "id": "arn:aws:iam::222222222222:role/CrossAccountAdmin",
+      "type": "role",
+      "account_id": "222222222222",
+      "name": "CrossAccountAdmin",
+      "attached_policies": ["arn:aws:iam::aws:policy/AdministratorAccess"],
+      "is_admin_equivalent": true
+    },
+    {
+      "id": "arn:aws:iam::111111111111:policy/ReadOnlyPolicy",
+      "type": "policy",
+      "account_id": "111111111111",
+      "name": "ReadOnlyPolicy",
+      "attached_policies": [],
+      "is_admin_equivalent": false
+    }
+  ],
+  "edges": [
+    {
+      "source": "arn:aws:iam::111111111111:user/dev-alice",
+      "target": "arn:aws:iam::111111111111:group/Developers",
+      "permission": "group_membership",
+      "condition": null,
+      "is_wildcard_resource": false
+    },
+    {
+      "source": "arn:aws:iam::111111111111:group/Developers",
+      "target": "arn:aws:iam::111111111111:policy/DevPolicy",
+      "permission": "policy_attachment",
+      "condition": null,
+      "is_wildcard_resource": false
+    },
+    {
+      "source": "arn:aws:iam::111111111111:user/dev-alice",
+      "target": "arn:aws:iam::111111111111:policy/DevPolicy",
+      "permission": "policy_attachment",
+      "condition": null,
+      "is_wildcard_resource": false
+    },
+    {
+      "source": "arn:aws:iam::111111111111:user/dev-alice",
+      "target": "arn:aws:iam::111111111111:role/DevRole",
+      "permission": "sts:AssumeRole",
+      "condition": null,
+      "is_wildcard_resource": false
+    },
+    {
+      "source": "arn:aws:iam::111111111111:role/DevRole",
+      "target": "arn:aws:iam::111111111111:role/AdminRole",
+      "permission": "iam:PassRole",
+      "condition": null,
+      "is_wildcard_resource": true
+    },
+    {
+      "source": "arn:aws:iam::111111111111:user/ops-bob",
+      "target": "arn:aws:iam::111111111111:policy/OpsPolicy",
+      "permission": "policy_attachment",
+      "condition": null,
+      "is_wildcard_resource": false
+    },
+    {
+      "source": "arn:aws:iam::111111111111:user/ops-bob",
+      "target": "arn:aws:iam::111111111111:role/AdminRole",
+      "permission": "sts:AssumeRole",
+      "condition": null,
+      "is_wildcard_resource": false
+    },
+    {
+      "source": "arn:aws:iam::111111111111:user/ops-bob",
+      "target": "arn:aws:iam::222222222222:role/CrossAccountAdmin",
+      "permission": "sts:AssumeRole",
+      "condition": {
+        "StringEquals": {
+          "sts:ExternalId": "hackathon-demo-12345"
+        }
+      },
+      "is_wildcard_resource": false
+    },
+    {
+      "source": "arn:aws:iam::111111111111:role/AdminRole",
+      "target": "arn:aws:iam::111111111111:policy/DevPolicy",
+      "permission": "policy_attachment",
+      "condition": null,
+      "is_wildcard_resource": false
+    },
+    {
+      "source": "arn:aws:iam::111111111111:user/readonly-carol",
+      "target": "arn:aws:iam::111111111111:policy/ReadOnlyPolicy",
+      "permission": "policy_attachment",
+      "condition": null,
+      "is_wildcard_resource": false
+    },
+    {
+      "source": "arn:aws:iam::111111111111:user/readonly-carol",
+      "target": "arn:aws:iam::111111111111:group/Developers",
+      "permission": "group_membership",
+      "condition": null,
+      "is_wildcard_resource": false
+    },
+    {
+      "source": "arn:aws:iam::222222222222:role/CrossAccountAdmin",
+      "target": "arn:aws:iam::111111111111:role/AdminRole",
+      "permission": "sts:AssumeRole",
+      "condition": null,
+      "is_wildcard_resource": false
+    },
+    {
+      "source": "arn:aws:iam::111111111111:user/dev-alice",
+      "target": "arn:aws:iam::111111111111:role/AdminRole",
+      "permission": "iam:PassRole",
+      "condition": null,
+      "is_wildcard_resource": true
+    },
+    {
+      "source": "arn:aws:iam::111111111111:role/DevRole",
+      "target": "arn:aws:iam::111111111111:policy/DevPolicy",
+      "permission": "policy_attachment",
+      "condition": null,
+      "is_wildcard_resource": false
+    }
+  ]
+}

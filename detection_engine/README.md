@@ -1,59 +1,31 @@
-# Person 2 — Detection Engine & Risk Scorer
+# Person 2 — Detection Engine & Machine Learning Risk Scorer (`/detection_engine/`)
 
 ## What this module does
-The **Detection Engine & Risk Scorer** is the analytical core of the Cloud IAM Misconfiguration Detector. It accepts an authorization graph exported by Person 1 and detects security risks using three specialized analysis engines:
-1. **Declarative Known-Pattern Matcher**: Evaluates 7 Rhino Security Labs & Bishop Fox privilege escalation vectors (e.g. `PassRole+RunInstances`, `CreatePolicyVersion`, `SetDefaultPolicyVersion`, `CreateAccessKey`, `sts:AssumeRole`, `AttachUserPolicy`, `PutUserPolicy`) encoded strictly as data files in `rules/iam_privesc_rules.json`.
-2. **Generic Graph Pathfinder**: Executes graph pathfinding (BFS/Dijkstra) from every non-admin principal (`is_admin_equivalent == false`) to admin-equivalent targets (`is_admin_equivalent == true`), discovering novel and multi-hop attack paths missed by static rules.
-3. **Wildcard & Over-Permission Scorer**: Scans for `Action: "*"` / `<service>:*` and `Resource: "*"` grants independent of exploitability.
-4. **Composite Risk Scorer**: Calculates explainable, non-blackbox risk scores using the formula:
-   $$\text{Risk} = \text{Reachability} \times \text{Blast Radius} \times \text{Exploit Triviality} \times 100$$
-   Every finding includes the decomposed 3-factor breakdown.
-5. **Deterministic Narrative Generator**: Constructs plain-English attack narratives for presentation and dashboard rendering.
+Identifies IAM misconfigurations, privilege escalation attack paths, and over-permissive wildcard statements using a hybrid analytical engine:
+1. **Declarative Rule Matcher**: Evaluates JSON rule signatures located in `/detection_engine/rules/` modeling Rhino Security Labs and Bishop Fox attack vectors (e.g. `PassRole+RunInstances`, `CreatePolicyVersion`, `SetDefaultPolicyVersion`, `CrossAccountTrust`).
+2. **NetworkX Graph Pathfinder**: Traverses identity relations using BFS and shortest path algorithms to identify novel multi-hop escalation paths leading to administrator-equivalent principals.
+3. **Machine Learning Model (`RandomForestClassifier`)**: Scikit-learn model trained on IAM feature vectors (wildcards, sensitive IAM action counts, shortest path to admin, blast radius, conditions) to score exploit triviality and anomaly probability.
+4. **Explainable Composite Risk Formula**: `Risk = Reachability × Blast_radius × Exploit_triviality` (0–100 scale), accompanied by the 3-factor breakdown for full transparency.
+5. **Attack Story Narratives**: Generates deterministic plain-English attack narratives for each finding.
 
 ## How to run it standalone
-Run the detector CLI from the repository root:
+1. Train the ML model (if not already trained):
 ```bash
-python -m detection_engine.detector --input detection_engine/tests/test_graph_export.json --output detection_engine/findings.json
+python -m detection_engine.train_model
 ```
-
-To run the automated unit test suite:
+2. Run detection on graph export:
 ```bash
-python -m unittest detection_engine/tests/test_detector.py
-```
-
-To use as a Python module:
-```python
-from detection_engine import run_detection
-
-results = run_detection(
-    input_graph_path="graph_export.json",
-    output_findings_path="findings.json"
-)
-print(f"Discovered {len(results['findings'])} findings")
+python -m detection_engine.detector graph_export.json findings.json
 ```
 
 ## Input file(s) expected and where
-- **File**: `graph_export.json`
-- **Location**: Provided via `--input` flag (root directory in integrated pipeline, or `detection_engine/tests/test_graph_export.json` for standalone testing).
-- **Schema**: Section 2.1 JSON contract containing:
-  - `accounts`: list of account IDs
-  - `nodes`: list of principal/policy/resource nodes with `id`, `type`, `account_id`, `name`, `attached_policies`, `is_admin_equivalent`
-  - `edges`: list of directed edges with `source`, `target`, `permission`, `condition`, `is_wildcard_resource`
+- `graph_export.json`: Graph nodes, edges, and account metadata produced by Person 1.
+- `sample_data/iam_export_sample.json`: Raw IAM authorization export (optional context for policy details).
+- `detection_engine/rules/*.json`: Declarative rule files.
+- `detection_engine/models/iam_risk_classifier.pkl`: Trained ML model weights.
 
 ## Output file produced and where
-- **File**: `findings.json`
-- **Location**: Written to path specified by `--output` flag (defaults to `findings.json` or `detection_engine/findings.json`).
-- **Schema**: Strictly adheres to Section 2.2 contract:
-  - `findings`: Array of finding objects with:
-    - `finding_id` (e.g. `F-001`, `F-002`)
-    - `type` (`known_pattern` | `novel_path` | `wildcard_overpermission`)
-    - `pattern_name` (descriptive name)
-    - `path` (list of ARNs/nodes traversed)
-    - `risk_score` (0.0 to 100.0)
-    - `risk_breakdown` (`reachability`, `blast_radius`, `exploit_triviality` floats between 0.0 and 1.0)
-    - `narrative` (plain-English attack explanation)
-    - `offending_statement` (`policy_arn`, `action`, `resource`)
+- `findings.json`: Strictly adheres to Section 2.2 schema containing `findings` with `finding_id`, `type`, `pattern_name`, `path`, `risk_score`, `risk_breakdown`, `narrative`, and `offending_statement`.
 
 ## Known limitations / things not implemented
-- Service Control Policies (SCPs) and Permission Boundaries are represented if flattened by Person 1's graph builder, but condition logic evaluation currently treats conditions as complexity penalties rather than full boolean satisfiability solvers.
-- Outbound multi-hop pathfinding limits path depth cutoff to 4 hops for high performance across large enterprise graphs.
+- Dynamic IAM condition operators (e.g. `aws:EpochTime` or ephemeral tags) are evaluated statically based on presence and type.

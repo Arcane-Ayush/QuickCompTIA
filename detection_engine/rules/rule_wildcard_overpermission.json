@@ -1,0 +1,20 @@
+{
+  "id": "RULE-005",
+  "name": "Wildcard service-level overpermission",
+  "type": "wildcard_overpermission",
+  "description": "Policy statement grants broad wildcard service actions (e.g. s3:*, iam:*, or *:*) across all resources without scoping to specific ARNs or request conditions.",
+  "match_wildcard_action": true,
+  "match_wildcard_resource": true,
+  "base_exploit_triviality": 0.70,
+  "default_reachability": 0.95,
+  "default_blast_radius": 0.85,
+  "mitre_technique": "T1078.004",
+  "remediation_template": {
+    "action": "{service}:GetObject",
+    "resource": "arn:aws:{service}:::{app_bucket}/*",
+    "condition": {
+      "Bool": { "aws:SecureTransport": "true" }
+    },
+    "justification": "Replaces wildcard service permissions with read-only scoped object retrieval restricted to designated bucket prefixes with enforced TLS."
+  }
+}

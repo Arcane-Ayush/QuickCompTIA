@@ -1,0 +1,25 @@
+{
+  "id": "RULE-001",
+  "name": "PassRole+RunInstances credential theft",
+  "type": "known_pattern",
+  "description": "Principal has ec2:RunInstances and iam:PassRole permissions, allowing creation of an EC2 instance associated with a high-privilege instance profile or role to harvest credentials via IMDS.",
+  "required_actions": [
+    ["iam:PassRole"],
+    ["ec2:RunInstances"]
+  ],
+  "target_service": "ec2.amazonaws.com",
+  "base_exploit_triviality": 0.88,
+  "default_reachability": 0.90,
+  "default_blast_radius": 0.95,
+  "mitre_technique": "T1078.004",
+  "remediation_template": {
+    "action": "iam:PassRole",
+    "resource": "arn:aws:iam::{account_id}:role/AppRole-*",
+    "condition": {
+      "StringEquals": {
+        "iam:PassedToService": "ec2.amazonaws.com"
+      }
+    },
+    "justification": "Restricts iam:PassRole to designated application role prefixes with explicit EC2 service condition, eliminating arbitrary admin role passing."
+  }
+}

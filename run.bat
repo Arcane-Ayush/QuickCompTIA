@@ -7,5 +7,6 @@ echo =================================================================
 echo.
 
 pip install -r requirements.txt
-python app.py --open-browser %*
+python main.py %*
+python dashboard_ui\server.py --port 8080
 pause

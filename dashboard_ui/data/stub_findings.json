@@ -1,0 +1,69 @@
+{
+  "findings": [
+    {
+      "finding_id": "F-001",
+      "type": "known_pattern",
+      "pattern_name": "PassRole+RunInstances credential theft",
+      "path": [
+        "arn:aws:iam::111111111111:user/dev-alice",
+        "arn:aws:iam::111111111111:role/DevRole",
+        "arn:aws:iam::111111111111:role/AdminRole"
+      ],
+      "risk_score": 87.5,
+      "risk_breakdown": {
+        "reachability": 0.9,
+        "blast_radius": 0.95,
+        "exploit_triviality": 0.85
+      },
+      "narrative": "dev-alice can become admin in 2 hops: assumes DevRole via sts:AssumeRole, then passes AdminRole to a new EC2 instance via unrestricted iam:PassRole (Resource: \"*\"). Once the EC2 instance launches with AdminRole, dev-alice can retrieve admin credentials from the instance metadata service.",
+      "offending_statement": {
+        "policy_arn": "arn:aws:iam::111111111111:policy/DevPolicy",
+        "action": "iam:PassRole",
+        "resource": "*"
+      }
+    },
+    {
+      "finding_id": "F-002",
+      "type": "novel_path",
+      "pattern_name": "Cross-account trust chain to admin",
+      "path": [
+        "arn:aws:iam::111111111111:user/ops-bob",
+        "arn:aws:iam::222222222222:role/CrossAccountAdmin",
+        "arn:aws:iam::111111111111:role/AdminRole"
+      ],
+      "risk_score": 72.0,
+      "risk_breakdown": {
+        "reachability": 0.8,
+        "blast_radius": 0.9,
+        "exploit_triviality": 0.6
+      },
+      "narrative": "ops-bob can escalate to admin across account boundaries: first assumes CrossAccountAdmin in account 222222222222 via a cross-account trust (protected only by a static ExternalId), then pivots back into account 111111111111's AdminRole via a reverse trust relationship. This creates a cross-account admin loop.",
+      "offending_statement": {
+        "policy_arn": "arn:aws:iam::111111111111:policy/OpsPolicy",
+        "action": "sts:AssumeRole",
+        "resource": "*"
+      }
+    },
+    {
+      "finding_id": "F-003",
+      "type": "wildcard_overpermission",
+      "pattern_name": "Unrestricted PassRole on all IAM roles",
+      "path": [
+        "arn:aws:iam::111111111111:user/dev-alice",
+        "arn:aws:iam::111111111111:role/AdminRole"
+      ],
+      "risk_score": 65.0,
+      "risk_breakdown": {
+        "reachability": 0.7,
+        "blast_radius": 0.85,
+        "exploit_triviality": 0.75
+      },
+      "narrative": "dev-alice holds iam:PassRole with Resource: \"*\", allowing her to pass ANY role in the account — including AdminRole — to any AWS service that accepts a role parameter. This wildcard grant is the root cause enabling the PassRole+RunInstances escalation chain (F-001).",
+      "offending_statement": {
+        "policy_arn": "arn:aws:iam::111111111111:policy/DevPolicy",
+        "action": "iam:PassRole",
+        "resource": "*"
+      }
+    }
+  ]
+}

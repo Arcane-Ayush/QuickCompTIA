@@ -3,144 +3,349 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Cloud IAM Misconfiguration Detector — Interactive Dashboard</title>
-  <link rel="stylesheet" href="styles.css">
-  <script type="text/javascript" src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
+  <meta name="description" content="Cloud IAM Misconfiguration Detector — Interactive dashboard for visualizing IAM privilege escalation paths, risk scores, and auto-generated least-privilege remediations.">
+  <title>Cloud IAM — Privilege Escalation Detector</title>
+
+  <!-- Google Fonts: Plus Jakarta Sans & JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+  <!-- Stylesheet -->
+  <link rel="stylesheet" href="css/styles.css?v=editorial-pastel-2">
+
+  <!-- Cytoscape.js via CDN -->
+  <script src="https://unpkg.com/cytoscape@3.30.4/dist/cytoscape.min.js"></script>
+  <!-- cose-bilkent layout plugin + required peer dependencies -->
+  <script src="https://unpkg.com/layout-base@2.0.1/layout-base.js"></script>
+  <script src="https://unpkg.com/cose-base@2.2.0/cose-base.js"></script>
+  <script src="https://unpkg.com/cytoscape-cose-bilkent@4.1.0/cytoscape-cose-bilkent.js"></script>
 </head>
 <body>
-  <header>
-    <div class="logo-container">
-      <div class="logo-icon">IAM</div>
-      <div>
-        <h1 class="logo-title">Cloud IAM Misconfiguration Detector</h1>
-        <p style="font-size: 0.75rem; color: var(--text-secondary);">4-Stage Graph-Based Privilege Escalation Analysis</p>
-      </div>
-    </div>
-    <div class="header-controls">
-      <button class="btn" id="refresh-btn">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
-        Re-Scan / Refresh
-      </button>
-      <button class="btn btn-primary" id="download-all-btn">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
-        Export All Remediations
-      </button>
-    </div>
-  </header>
 
-  <main class="container">
-    <!-- Metrics Section -->
-    <section class="metrics-grid">
-      <div class="metric-card critical">
-        <div class="metric-header">Critical Risk Escalations</div>
-        <div class="metric-value" id="metric-critical">0</div>
-        <div class="metric-sub">Risk score ≥ 80.0</div>
+  <!-- ============ MAIN FLOATING CANVAS BOARD ============ -->
+  <div class="app-canvas-board">
+
+    <!-- Top Navigation Bar -->
+    <header class="top-navbar" role="banner">
+      <div class="brand-group">
+        <div class="brand-logo-icon">🛡</div>
+        <div class="brand-name">IAM SHIELD</div>
       </div>
-      <div class="metric-card high">
-        <div class="metric-header">High Risk Paths</div>
-        <div class="metric-value" id="metric-high">0</div>
-        <div class="metric-sub">Risk score 60.0 – 79.9</div>
+
+      <nav class="nav-links" aria-label="Main Navigation">
+        <a class="nav-link active" href="#overview">Overview</a>
+        <a class="nav-link" href="#graph">Attack Graph</a>
+        <a class="nav-link" href="#findings">Findings</a>
+        <a class="nav-link" href="#remediations">Remediations</a>
+      </nav>
+
+      <div class="nav-actions">
+        <button id="btn-header-reload" class="pill-btn pill-btn-outline" title="Import custom scan files">
+          📂 Import Files
+        </button>
+        <button id="btn-run-pipeline" class="pill-btn pill-btn-dark" title="Re-run active scan">
+          Live Scan
+        </button>
       </div>
-      <div class="metric-card medium">
-        <div class="metric-header">Wildcard Grants</div>
-        <div class="metric-value" id="metric-wildcards">0</div>
-        <div class="metric-sub">Resource: "*" or Service:*</div>
+    </header>
+
+    <!-- Hero Editorial Headline Section (Inspired by PLAN YOUR / ESCAPE) -->
+    <section class="hero-editorial-section" id="overview">
+      <div class="headline-wrap">
+        <h1 class="editorial-headline">
+          SECURE YOUR
+          <span class="italic-accent">CLOUD IDENTITY</span>
+        </h1>
       </div>
-      <div class="metric-card low">
-        <div class="metric-header">Total Principals Analyzed</div>
-        <div class="metric-value" id="metric-nodes">0</div>
-        <div class="metric-sub" id="metric-edges-count">0 Graph Edges Evaluated</div>
+
+      <div class="hero-description-wrap">
+        <p class="hero-description-text">
+          Continuous IAM misconfiguration detection powered by graph pathfinding and machine learning.
+          Visualizing non-obvious attack pivots and auto-synthesizing least-privilege policies.
+        </p>
+        <div class="account-tag-list account-badges">
+          <!-- Populated dynamically by app.js with account pills -->
+        </div>
       </div>
     </section>
 
-    <!-- Main View: Graph + Findings Scorecard -->
-    <section class="main-layout">
-      <div class="panel">
-        <div class="panel-header">
-          <h2 class="panel-title">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
-            Interactive Privilege Graph Visualization
-          </h2>
-          <span style="font-size: 0.8rem; color: var(--text-secondary);" id="graph-status">Click nodes or paths to inspect</span>
-        </div>
-        <div id="vis-graph"></div>
-        <div class="graph-legend">
-          <div class="legend-item"><div class="legend-color" style="background: #ef4444;"></div> Admin Equivalent</div>
-          <div class="legend-item"><div class="legend-color" style="background: #38bdf8;"></div> IAM User</div>
-          <div class="legend-item"><div class="legend-color" style="background: #a855f7;"></div> IAM Role</div>
-          <div class="legend-item"><div class="legend-color" style="background: #10b981;"></div> Policy / Group</div>
-        </div>
+    <!-- Bold Metrics Bar (Reference 1K+ / 10K+ / 4.8+ Style) -->
+    <section class="metrics-row stats-bar" aria-label="Summary statistics">
+      <div class="metric-item">
+        <div class="metric-big-number stat-nodes-val">28</div>
+        <div class="metric-label-two-line">Unique Principals<br>& Resources</div>
       </div>
-
-      <!-- Scorecards -->
-      <div class="panel">
-        <div class="panel-header">
-          <h2 class="panel-title">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
-            Explainable Risk Scorecards
-          </h2>
-          <span style="font-size: 0.8rem; color: var(--text-muted);" id="finding-count-label">0 Findings</span>
-        </div>
-        <div class="findings-container" id="findings-list">
-          <div style="padding: 2rem; text-align: center; color: var(--text-muted);">Loading detection findings...</div>
-        </div>
+      <div class="metric-item">
+        <div class="metric-big-number stat-edges-val">31</div>
+        <div class="metric-label-two-line">Discovered IAM<br>Relationships</div>
+      </div>
+      <div class="metric-item">
+        <div class="metric-big-number stat-findings-val" style="color:#c2410c;">11</div>
+        <div class="metric-label-two-line">Active Risk<br>Findings</div>
+      </div>
+      <div class="metric-item">
+        <div class="metric-big-number stat-risk-val" style="color:#b91c1c;">98%</div>
+        <div class="metric-label-two-line">Peak Exploit<br>Triviality</div>
       </div>
     </section>
-  </main>
 
-  <!-- Slide-Over Drawer for Finding Detail & Remediation -->
-  <div class="modal-overlay" id="drawer-overlay">
-    <div class="drawer">
-      <div class="drawer-header">
-        <div>
-          <span class="finding-id" id="drawer-finding-id">F-001</span>
-          <h2 style="font-size: 1.2rem; margin-top: 0.25rem; color: #fff;" id="drawer-title">Finding Detail</h2>
-        </div>
-        <button class="close-btn" id="close-drawer">&times;</button>
+    <!-- Trio Pastel Feature Cards (Reference Image Bottom Right 3 Cards) -->
+    <section class="pastel-feature-trio">
+      <div class="feature-pastel-card lavender">
+        <div class="card-circle-icon">⚡</div>
+        <h3 class="card-headline-uppercase">GRAPH REACHABILITY & PATHFINDING</h3>
+        <p class="card-body-description">
+          BFS shortest-path traversals uncovering multi-hop privilege escalation pivots across account boundaries.
+        </p>
       </div>
-      <div class="drawer-body">
-        <div>
-          <h3 style="font-size: 0.85rem; text-transform: uppercase; color: var(--text-secondary); margin-bottom: 0.5rem;">Attack Path Narrative</h3>
-          <div class="narrative-box" id="drawer-narrative">
-            Attack explanation will appear here...
-          </div>
-        </div>
 
-        <div>
-          <h3 style="font-size: 0.85rem; text-transform: uppercase; color: var(--text-secondary); margin-bottom: 0.5rem;">Risk Breakdown (Formula: Reachability × Blast Radius × Exploit Triviality)</h3>
-          <div class="breakdown-grid" style="background: rgba(30, 41, 59, 0.4); padding: 1rem; border-radius: 10px;" id="drawer-breakdown">
-          </div>
-        </div>
+      <div class="feature-pastel-card sage">
+        <div class="card-circle-icon">🎯</div>
+        <h3 class="card-headline-uppercase">TRAINED ML RISK SCORING MODEL</h3>
+        <p class="card-body-description">
+          Scikit-Learn Random Forest evaluating composite Risk = Reachability × Blast Radius × Exploit Triviality.
+        </p>
+      </div>
 
-        <div>
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
-            <h3 style="font-size: 0.85rem; text-transform: uppercase; color: var(--text-secondary);">Least-Privilege Auto-Fix Diff</h3>
-            <button class="btn btn-primary" id="download-policy-btn" style="padding: 0.4rem 0.8rem; font-size: 0.75rem;">
-              Download Fixed Policy JSON
+      <div class="feature-pastel-card peach">
+        <div class="card-circle-icon">🔧</div>
+        <h3 class="card-headline-uppercase">AUTOMATED LEAST PRIVILEGE</h3>
+        <p class="card-body-description">
+          Synthesizes narrow ARN patterns, CRUD actions, and enforces condition constraints to close vulnerabilities.
+        </p>
+      </div>
+    </section>
+
+    <!-- Main Workstation: Attack Graph (Left) & Findings (Right) -->
+    <section class="workstation-section" id="graph">
+
+      <!-- Graph Card -->
+      <div class="graph-container-card" aria-label="IAM relationship graph">
+        <div id="cy-container"></div>
+
+        <!-- Graph Header Toolbar -->
+        <div class="graph-top-toolbar">
+          <div class="graph-title-pill">
+            <span class="graph-title-text">Attack Graph</span>
+            <span class="graph-count-chip" id="graph-stat-badge">28 Nodes • 31 Edges</span>
+          </div>
+          <div class="graph-toolbar-actions">
+            <button class="graph-tool-btn" id="btn-graph-direct-import" title="Import Parser Graph (graph_export.json)">
+              📥 Import Graph
+            </button>
+            <button class="graph-tool-btn" id="btn-shortcuts-toggle" title="View Keyboard Shortcuts (?)">
+              ⌨️ Keys
             </button>
           </div>
-          
-          <div class="diff-grid">
-            <div>
-              <div style="font-size: 0.75rem; color: var(--risk-critical); margin-bottom: 0.25rem; font-weight: 700;">Offending Statement</div>
-              <pre class="code-block" id="drawer-original-json">Loading...</pre>
-            </div>
-            <div>
-              <div style="font-size: 0.75rem; color: var(--risk-low); margin-bottom: 0.25rem; font-weight: 700;">Suggested Replacement Statement</div>
-              <pre class="code-block" id="drawer-suggested-json">Loading...</pre>
-            </div>
+        </div>
+        <input type="file" id="file-graph-direct" accept=".json" style="display:none;">
+
+        <!-- Graph Legend Pill -->
+        <div class="graph-legend-pill graph-legend" aria-label="Graph legend">
+          <div class="legend-title-small">Node Types</div>
+          <div class="legend-item-line"><div class="legend-chip" style="background:#3b82f6;"></div> User</div>
+          <div class="legend-item-line"><div class="legend-chip" style="background:#8b5cf6;"></div> Role</div>
+          <div class="legend-item-line"><div class="legend-chip" style="background:#06b6d4;"></div> Group</div>
+          <div class="legend-item-line"><div class="legend-chip" style="background:#f97316;"></div> Policy</div>
+          <div class="legend-item-line"><div class="legend-chip" style="background:#ef4444;"></div> Admin Equivalent</div>
+        </div>
+
+        <!-- Floating Pill Controls -->
+        <div class="graph-pill-controls" aria-label="Graph zoom controls">
+          <button class="graph-circle-btn" id="btn-zoom-in" title="Zoom In (+)" aria-label="Zoom in">+</button>
+          <button class="graph-circle-btn" id="btn-zoom-out" title="Zoom Out (-)" aria-label="Zoom out">−</button>
+          <button class="graph-circle-btn" id="btn-fit" title="Fit to View (0 or F)" aria-label="Fit view">⊡</button>
+          <button class="graph-circle-btn" id="btn-reset" title="Reset View (R)" aria-label="Reset view">↺</button>
+        </div>
+      </div>
+
+      <!-- Findings Card -->
+      <div class="findings-container-card" id="findings" aria-label="Ranked findings">
+        <div class="findings-card-header">
+          <div class="findings-header-title-row">
+            <h2 class="findings-section-title">RISK FINDINGS</h2>
+            <span class="findings-counter-pill findings-count">0</span>
+          </div>
+
+          <!-- Filter Pills -->
+          <div class="filter-pills-row" role="group" aria-label="Filter findings by severity">
+            <button class="filter-pill active" data-filter="all" title="Shortcut: Key 1">All</button>
+            <button class="filter-pill" data-filter="critical" title="Shortcut: Key 2">Critical</button>
+            <button class="filter-pill" data-filter="high" title="Shortcut: Key 3">High</button>
+            <button class="filter-pill" data-filter="medium" title="Shortcut: Key 4">Medium</button>
+            <button class="filter-pill" data-filter="low" title="Shortcut: Key 5">Low</button>
           </div>
         </div>
 
-        <div>
-          <h3 style="font-size: 0.85rem; text-transform: uppercase; color: var(--text-secondary); margin-bottom: 0.5rem;">Remediation Justification</h3>
-          <div style="background: rgba(16, 185, 129, 0.08); border-left: 4px solid var(--risk-low); padding: 1rem; border-radius: 0 8px 8px 0; font-size: 0.9rem;" id="drawer-justification">
+        <!-- Findings List -->
+        <div class="findings-scroll-list findings-list" role="list">
+          <!-- Rendered dynamically by scorecards.js -->
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <!-- ============ DETAIL DRAWER (Click-to-expand) ============ -->
+  <aside class="detail-drawer" id="detail-drawer" role="dialog" aria-label="Finding detail" aria-hidden="true">
+    <div class="drawer-header">
+      <h3 class="drawer-title-styled">FINDING DETAIL</h3>
+      <button class="drawer-close-circle" id="btn-close-drawer" aria-label="Close detail drawer (Esc)">✕</button>
+    </div>
+    <div class="drawer-content-scroll detail-drawer-body" id="drawer-body">
+      <!-- Populated dynamically by detail-modal.js -->
+    </div>
+  </aside>
+
+  <!-- ============ FILE IMPORT & PARSER GRAPH MODAL ============ -->
+  <div class="file-loader-overlay hidden" id="file-loader-overlay">
+    <div class="file-loader-card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+        <h3 class="card-headline-uppercase" style="margin:0;">IMPORT SCAN & PARSER GRAPH</h3>
+        <button id="btn-close-loader" class="drawer-close-circle" aria-label="Close modal">✕</button>
+      </div>
+
+      <!-- Drag & Drop Zone -->
+      <div class="dropzone-box" id="dropzone-container">
+        <div class="dropzone-icon">📁</div>
+        <div class="dropzone-text">Drop graph_export.json or scan files here</div>
+        <div class="dropzone-subtext">Click to browse or drag & drop custom JSON outputs</div>
+        <input type="file" id="file-dropzone" accept=".json" multiple style="display:none;">
+      </div>
+
+      <!-- 3 Files Input Group -->
+      <div style="display:flex;flex-direction:column;gap:12px;margin-bottom:20px;">
+        
+        <!-- Parser Graph File Row -->
+        <div class="file-input-row" style="padding:14px;background:#f8fafc;border-radius:14px;border:1.5px solid #e2e8f0;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+            <div>
+              <span style="font-weight:700;font-size:0.86rem;display:block;">1. Parser Graph (graph_export.json)</span>
+              <span class="file-status-subtext" id="status-file-graph" style="font-size:0.75rem;color:var(--text-muted);">IAM identities, accounts & relationship edges</span>
+            </div>
+            <label class="pill-btn pill-btn-outline file-input-label" for="file-graph" style="padding:6px 16px;font-size:0.75rem;cursor:pointer;">Browse</label>
+            <input type="file" id="file-graph" accept=".json" style="display:none;">
           </div>
+          <button class="pill-btn pill-btn-dark" id="btn-render-graph-only" style="width:100%;font-size:0.75rem;padding:6px 12px;display:none;justify-content:center;margin-top:8px;">
+            🚀 Visualize Parser Graph Directly
+          </button>
+        </div>
+
+        <!-- Detection Engine Findings Row -->
+        <div class="file-input-row" style="display:flex;justify-content:space-between;align-items:center;padding:12px 14px;background:#f8fafc;border-radius:14px;border:1.5px solid #e2e8f0;">
+          <div>
+            <span style="font-weight:700;font-size:0.86rem;display:block;">2. Detection Findings (findings.json)</span>
+            <span class="file-status-subtext" id="status-file-findings" style="font-size:0.75rem;color:var(--text-muted);">Escalation paths, pattern detections & ML risk scores</span>
+          </div>
+          <label class="pill-btn pill-btn-outline file-input-label" for="file-findings" style="padding:6px 16px;font-size:0.75rem;cursor:pointer;">Browse</label>
+          <input type="file" id="file-findings" accept=".json" style="display:none;">
+        </div>
+
+        <!-- Remediation Generator Row -->
+        <div class="file-input-row" style="display:flex;justify-content:space-between;align-items:center;padding:12px 14px;background:#f8fafc;border-radius:14px;border:1.5px solid #e2e8f0;">
+          <div>
+            <span style="font-weight:700;font-size:0.86rem;display:block;">3. Remediations (remediations.json)</span>
+            <span class="file-status-subtext" id="status-file-remediations" style="font-size:0.75rem;color:var(--text-muted);">Least-privilege policy fixes and justifications</span>
+          </div>
+          <label class="pill-btn pill-btn-outline file-input-label" for="file-remediations" style="padding:6px 16px;font-size:0.75rem;cursor:pointer;">Browse</label>
+          <input type="file" id="file-remediations" accept=".json" style="display:none;">
+        </div>
+
+      </div>
+
+      <!-- Quick Preset Buttons -->
+      <div style="display:flex;gap:10px;margin-bottom:16px;">
+        <button class="pill-btn pill-btn-outline" id="btn-load-real" style="flex:1;justify-content:center;font-size:0.75rem;padding:8px 12px;">
+          ⚡ Real Scan (28 Nodes)
+        </button>
+        <button class="pill-btn pill-btn-outline" id="btn-load-stubs" style="flex:1;justify-content:center;font-size:0.75rem;padding:8px 12px;">
+          🧪 Minimal Stubs (10 Nodes)
+        </button>
+      </div>
+
+      <button class="pill-btn pill-btn-dark" id="btn-apply-all-import" style="width:100%;justify-content:center;padding:12px 20px;">
+        Apply & Visualize Workspace
+      </button>
+    </div>
+  </div>
+
+  <!-- ============ KEYBOARD SHORTCUTS MODAL ============ -->
+  <div class="shortcuts-overlay hidden" id="shortcuts-overlay">
+    <div class="shortcuts-card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;">
+        <h3 class="card-headline-uppercase" style="margin:0;">KEYBOARD SHORTCUTS</h3>
+        <button id="btn-close-shortcuts" class="drawer-close-circle" aria-label="Close shortcuts modal">✕</button>
+      </div>
+
+      <div class="shortcut-row">
+        <span class="shortcut-desc">Zoom In / Out Graph</span>
+        <div class="shortcut-keys-group">
+          <kbd class="kbd-badge">+</kbd>
+          <kbd class="kbd-badge">−</kbd>
+        </div>
+      </div>
+      <div class="shortcut-row">
+        <span class="shortcut-desc">Fit Graph to Screen</span>
+        <div class="shortcut-keys-group">
+          <kbd class="kbd-badge">0</kbd>
+          <kbd class="kbd-badge">F</kbd>
+        </div>
+      </div>
+      <div class="shortcut-row">
+        <span class="shortcut-desc">Reset Graph & Deselect</span>
+        <div class="shortcut-keys-group">
+          <kbd class="kbd-badge">R</kbd>
+        </div>
+      </div>
+      <div class="shortcut-row">
+        <span class="shortcut-desc">Navigate Findings List</span>
+        <div class="shortcut-keys-group">
+          <kbd class="kbd-badge">↓</kbd>
+          <kbd class="kbd-badge">↑</kbd>
+          <span style="font-size:0.75rem;color:var(--text-muted);align-self:center;">or</span>
+          <kbd class="kbd-badge">J</kbd>
+          <kbd class="kbd-badge">K</kbd>
+        </div>
+      </div>
+      <div class="shortcut-row">
+        <span class="shortcut-desc">Open Finding Detail Drawer</span>
+        <div class="shortcut-keys-group">
+          <kbd class="kbd-badge">Enter</kbd>
+        </div>
+      </div>
+      <div class="shortcut-row">
+        <span class="shortcut-desc">Filter Severity (All / Crit / High / Med / Low)</span>
+        <div class="shortcut-keys-group">
+          <kbd class="kbd-badge">1</kbd>
+          <kbd class="kbd-badge">2</kbd>
+          <kbd class="kbd-badge">3</kbd>
+          <kbd class="kbd-badge">4</kbd>
+          <kbd class="kbd-badge">5</kbd>
+        </div>
+      </div>
+      <div class="shortcut-row">
+        <span class="shortcut-desc">Open Import / Parser Graph Dialog</span>
+        <div class="shortcut-keys-group">
+          <kbd class="kbd-badge">I</kbd>
+        </div>
+      </div>
+      <div class="shortcut-row">
+        <span class="shortcut-desc">Close Modals & Drawers</span>
+        <div class="shortcut-keys-group">
+          <kbd class="kbd-badge">Esc</kbd>
         </div>
       </div>
     </div>
   </div>
 
-  <script src="app.js"></script>
+  <!-- Toast Notification Box -->
+  <div class="toast-notification" id="toast-box"></div>
+
+  <!-- Application Scripts -->
+  <script src="js/graph.js?v=editorial-pastel-3"></script>
+  <script src="js/scorecards.js?v=editorial-pastel-3"></script>
+  <script src="js/detail-modal.js?v=editorial-pastel-3"></script>
+  <script src="js/app.js?v=editorial-pastel-3"></script>
 </body>
 </html>

@@ -1,80 +1,29 @@
 {
-  "_comment": "Mock GetAccountAuthorizationDetails-style export. 25 principals across 2 accounts. Contains 3 deliberate escalation chains: (A) PassRole+RunInstances, (B) CreatePolicyVersion self-privesc, (C) cross-account trust pivot.",
   "UserDetailList": [
     {
-      "UserId": "AIDAUSER001",
-      "UserName": "dev-alice",
       "Arn": "arn:aws:iam::111111111111:user/dev-alice",
+      "UserName": "dev-alice",
+      "UserId": "AIDA111111111111ALICE",
       "Path": "/",
-      "CreateDate": "2023-01-10T08:00:00Z",
-      "GroupList": ["dev-group"],
+      "CreateDate": "2026-01-10T10:00:00Z",
+      "GroupList": ["DevelopersGroup"],
       "AttachedManagedPolicies": [
-        {"PolicyName": "PassRolePolicy", "PolicyArn": "arn:aws:iam::111111111111:policy/PassRolePolicy"}
+        {
+          "PolicyName": "DevEC2Policy",
+          "PolicyArn": "arn:aws:iam::111111111111:policy/DevEC2Policy"
+        }
       ],
-      "UserPolicyList": []
-    },
-    {
-      "UserId": "AIDAUSER002",
-      "UserName": "dev-bob",
-      "Arn": "arn:aws:iam::111111111111:user/dev-bob",
-      "Path": "/",
-      "CreateDate": "2023-02-14T08:00:00Z",
-      "GroupList": ["dev-group"],
-      "AttachedManagedPolicies": [],
-      "UserPolicyList": []
-    },
-    {
-      "UserId": "AIDAUSER003",
-      "UserName": "ops-carol",
-      "Arn": "arn:aws:iam::111111111111:user/ops-carol",
-      "Path": "/",
-      "CreateDate": "2023-03-01T08:00:00Z",
-      "GroupList": ["ops-group"],
-      "AttachedManagedPolicies": [],
-      "UserPolicyList": []
-    },
-    {
-      "UserId": "AIDAUSER004",
-      "UserName": "ci-bot",
-      "Arn": "arn:aws:iam::111111111111:user/ci-bot",
-      "Path": "/ci/",
-      "CreateDate": "2023-04-01T08:00:00Z",
-      "GroupList": [],
-      "AttachedManagedPolicies": [
-        {"PolicyName": "CIPolicy", "PolicyArn": "arn:aws:iam::111111111111:policy/CIPolicy"},
-        {"PolicyName": "CreateVersionPolicy", "PolicyArn": "arn:aws:iam::111111111111:policy/CreateVersionPolicy"}
-      ],
-      "UserPolicyList": []
-    },
-    {
-      "UserId": "AIDAUSER005",
-      "UserName": "readonly-dave",
-      "Arn": "arn:aws:iam::111111111111:user/readonly-dave",
-      "Path": "/",
-      "CreateDate": "2023-05-10T08:00:00Z",
-      "GroupList": ["readonly-group"],
-      "AttachedManagedPolicies": [],
-      "UserPolicyList": []
-    },
-    {
-      "UserId": "AIDAUSER006",
-      "UserName": "ops-eve",
-      "Arn": "arn:aws:iam::111111111111:user/ops-eve",
-      "Path": "/",
-      "CreateDate": "2023-06-01T08:00:00Z",
-      "GroupList": ["ops-group"],
-      "AttachedManagedPolicies": [],
       "UserPolicyList": [
         {
-          "PolicyName": "ops-eve-inline",
+          "PolicyName": "DevInlinePassRole",
           "PolicyDocument": {
             "Version": "2012-10-17",
             "Statement": [
               {
-                "Sid": "S3BucketAccess",
+                "Sid": "AllowPassRoleToEC2App",
                 "Effect": "Allow",
-                "Action": ["s3:GetObject", "s3:PutObject"],
-                "Resource": "arn:aws:s3:::ops-bucket/*"
+                "Action": ["iam:PassRole"],
+                "Resource": "arn:aws:iam::111111111111:role/EC2AppRole"
               }
             ]
           }
@@ -82,218 +31,311 @@
       ]
     },
     {
-      "UserId": "AIDAUSER007",
-      "UserName": "external-auditor",
-      "Arn": "arn:aws:iam::222222222222:user/external-auditor",
-      "Path": "/external/",
-      "CreateDate": "2023-07-01T08:00:00Z",
-      "GroupList": [],
+      "Arn": "arn:aws:iam::111111111111:user/ops-bob",
+      "UserName": "ops-bob",
+      "UserId": "AIDA111111111111BOB",
+      "Path": "/",
+      "CreateDate": "2026-01-12T11:00:00Z",
+      "GroupList": ["OperationsGroup"],
       "AttachedManagedPolicies": [
-        {"PolicyName": "CrossAccountPolicy", "PolicyArn": "arn:aws:iam::222222222222:policy/CrossAccountPolicy"}
+        {
+          "PolicyName": "OpsPolicyVersionPrivesc",
+          "PolicyArn": "arn:aws:iam::111111111111:policy/OpsPolicyVersionPrivesc"
+        }
       ],
       "UserPolicyList": []
     },
     {
-      "UserId": "AIDAUSER008",
-      "UserName": "svc-monitor",
-      "Arn": "arn:aws:iam::111111111111:user/svc-monitor",
-      "Path": "/svc/",
-      "CreateDate": "2023-08-01T08:00:00Z",
+      "Arn": "arn:aws:iam::111111111111:user/contractor-carol",
+      "UserName": "contractor-carol",
+      "UserId": "AIDA111111111111CAROL",
+      "Path": "/",
+      "CreateDate": "2026-02-01T09:30:00Z",
       "GroupList": [],
       "AttachedManagedPolicies": [
-        {"PolicyName": "ReadOnlyPolicy", "PolicyArn": "arn:aws:iam::111111111111:policy/ReadOnlyPolicy"}
+        {
+          "PolicyName": "ContractorCrossAccountPolicy",
+          "PolicyArn": "arn:aws:iam::111111111111:policy/ContractorCrossAccountPolicy"
+        }
+      ],
+      "UserPolicyList": []
+    },
+    {
+      "Arn": "arn:aws:iam::111111111111:user/analyst-dave",
+      "UserName": "analyst-dave",
+      "UserId": "AIDA111111111111DAVE",
+      "Path": "/",
+      "CreateDate": "2026-02-15T14:20:00Z",
+      "GroupList": ["AnalyticsGroup"],
+      "AttachedManagedPolicies": [
+        {
+          "PolicyName": "AnalystWildcardS3Policy",
+          "PolicyArn": "arn:aws:iam::111111111111:policy/AnalystWildcardS3Policy"
+        }
+      ],
+      "UserPolicyList": []
+    },
+    {
+      "Arn": "arn:aws:iam::111111111111:user/qa-eve",
+      "UserName": "qa-eve",
+      "UserId": "AIDA111111111111EVE",
+      "Path": "/",
+      "CreateDate": "2026-03-01T08:00:00Z",
+      "GroupList": ["DevelopersGroup"],
+      "AttachedManagedPolicies": [
+        {
+          "PolicyName": "QAPolicyVersionSwitch",
+          "PolicyArn": "arn:aws:iam::111111111111:policy/QAPolicyVersionSwitch"
+        }
+      ],
+      "UserPolicyList": []
+    },
+    {
+      "Arn": "arn:aws:iam::111111111111:user/sec-frank",
+      "UserName": "sec-frank",
+      "UserId": "AIDA111111111111FRANK",
+      "Path": "/",
+      "CreateDate": "2026-01-05T09:00:00Z",
+      "GroupList": ["AuditorsGroup"],
+      "AttachedManagedPolicies": [
+        {
+          "PolicyName": "SecurityAuditReadOnly",
+          "PolicyArn": "arn:aws:iam::111111111111:policy/SecurityAuditReadOnly"
+        }
+      ],
+      "UserPolicyList": []
+    },
+    {
+      "Arn": "arn:aws:iam::111111111111:user/billing-grace",
+      "UserName": "billing-grace",
+      "UserId": "AIDA111111111111GRACE",
+      "Path": "/",
+      "CreateDate": "2026-02-10T11:15:00Z",
+      "GroupList": [],
+      "AttachedManagedPolicies": [
+        {
+          "PolicyName": "BillingReadOnly",
+          "PolicyArn": "arn:aws:iam::111111111111:policy/BillingReadOnly"
+        }
       ],
       "UserPolicyList": []
     }
   ],
   "RoleDetailList": [
     {
-      "RoleId": "AROAROLE001",
-      "RoleName": "AdminRole",
+      "Arn": "arn:aws:iam::111111111111:role/EC2AppRole",
+      "RoleName": "EC2AppRole",
+      "RoleId": "AROA111111111111EC2APP",
+      "Path": "/",
+      "CreateDate": "2026-01-10T12:00:00Z",
+      "AssumeRolePolicyDocument": {
+        "Version": "2012-10-17",
+        "Statement": [
+          {
+            "Effect": "Allow",
+            "Principal": { "Service": "ec2.amazonaws.com" },
+            "Action": "sts:AssumeRole"
+          }
+        ]
+      },
+      "AttachedManagedPolicies": [
+        {
+          "PolicyName": "PassRoleToAdminPolicy",
+          "PolicyArn": "arn:aws:iam::111111111111:policy/PassRoleToAdminPolicy"
+        }
+      ],
+      "RolePolicyList": []
+    },
+    {
       "Arn": "arn:aws:iam::111111111111:role/AdminRole",
+      "RoleName": "AdminRole",
+      "RoleId": "AROA111111111111ADMIN",
       "Path": "/",
-      "CreateDate": "2022-12-01T08:00:00Z",
+      "CreateDate": "2026-01-01T00:00:00Z",
       "AssumeRolePolicyDocument": {
         "Version": "2012-10-17",
         "Statement": [
           {
             "Effect": "Allow",
-            "Principal": {"AWS": "arn:aws:iam::111111111111:role/DevRole"},
+            "Principal": { "Service": "ec2.amazonaws.com" },
             "Action": "sts:AssumeRole"
           }
         ]
       },
       "AttachedManagedPolicies": [
-        {"PolicyName": "AdminPolicy", "PolicyArn": "arn:aws:iam::111111111111:policy/AdminPolicy"}
+        {
+          "PolicyName": "AdministratorAccess",
+          "PolicyArn": "arn:aws:iam::aws:policy/AdministratorAccess"
+        }
       ],
       "RolePolicyList": []
     },
     {
-      "RoleId": "AROAROLE002",
-      "RoleName": "DevRole",
-      "Arn": "arn:aws:iam::111111111111:role/DevRole",
+      "Arn": "arn:aws:iam::111111111111:role/LambdaWorkerRole",
+      "RoleName": "LambdaWorkerRole",
+      "RoleId": "AROA111111111111LAMBDA",
       "Path": "/",
-      "CreateDate": "2023-01-05T08:00:00Z",
+      "CreateDate": "2026-01-15T09:00:00Z",
       "AssumeRolePolicyDocument": {
         "Version": "2012-10-17",
         "Statement": [
           {
             "Effect": "Allow",
-            "Principal": {"AWS": "arn:aws:iam::111111111111:user/dev-alice"},
+            "Principal": { "Service": "lambda.amazonaws.com" },
             "Action": "sts:AssumeRole"
-          },
+          }
+        ]
+      },
+      "AttachedManagedPolicies": [],
+      "RolePolicyList": [
+        {
+          "PolicyName": "LambdaWorkerInline",
+          "PolicyDocument": {
+            "Version": "2012-10-17",
+            "Statement": [
+              {
+                "Effect": "Allow",
+                "Action": ["logs:CreateLogGroup", "logs:CreateLogStream", "logs:PutLogEvents"],
+                "Resource": "arn:aws:logs:*:*:*"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "Arn": "arn:aws:iam::222222222222:role/CrossAccountDeployRole",
+      "RoleName": "CrossAccountDeployRole",
+      "RoleId": "AROA222222222222DEPLOY",
+      "Path": "/",
+      "CreateDate": "2026-01-20T10:00:00Z",
+      "AssumeRolePolicyDocument": {
+        "Version": "2012-10-17",
+        "Statement": [
           {
             "Effect": "Allow",
-            "Principal": {"AWS": "arn:aws:iam::111111111111:user/dev-bob"},
+            "Principal": {
+              "AWS": "arn:aws:iam::111111111111:user/contractor-carol"
+            },
             "Action": "sts:AssumeRole"
           }
         ]
       },
       "AttachedManagedPolicies": [
-        {"PolicyName": "DevPolicy", "PolicyArn": "arn:aws:iam::111111111111:policy/DevPolicy"}
+        {
+          "PolicyName": "AssumeOrgAdminPolicy",
+          "PolicyArn": "arn:aws:iam::222222222222:policy/AssumeOrgAdminPolicy"
+        }
       ],
       "RolePolicyList": []
     },
     {
-      "RoleId": "AROAROLE003",
-      "RoleName": "OpsRole",
-      "Arn": "arn:aws:iam::111111111111:role/OpsRole",
+      "Arn": "arn:aws:iam::222222222222:role/OrgAdminRole",
+      "RoleName": "OrgAdminRole",
+      "RoleId": "AROA222222222222ORGADMIN",
       "Path": "/",
-      "CreateDate": "2023-02-01T08:00:00Z",
+      "CreateDate": "2026-01-01T00:00:00Z",
       "AssumeRolePolicyDocument": {
         "Version": "2012-10-17",
         "Statement": [
           {
             "Effect": "Allow",
-            "Principal": {"AWS": "arn:aws:iam::111111111111:group/ops-group"},
+            "Principal": {
+              "AWS": "arn:aws:iam::222222222222:role/CrossAccountDeployRole"
+            },
             "Action": "sts:AssumeRole"
           }
         ]
       },
       "AttachedManagedPolicies": [
-        {"PolicyName": "OpsPolicy", "PolicyArn": "arn:aws:iam::111111111111:policy/OpsPolicy"}
+        {
+          "PolicyName": "AdministratorAccess",
+          "PolicyArn": "arn:aws:iam::aws:policy/AdministratorAccess"
+        }
       ],
       "RolePolicyList": []
     },
     {
-      "RoleId": "AROAROLE004",
-      "RoleName": "EC2InstanceRole",
-      "Arn": "arn:aws:iam::111111111111:role/EC2InstanceRole",
+      "Arn": "arn:aws:iam::222222222222:role/DataPipelineServiceRole",
+      "RoleName": "DataPipelineServiceRole",
+      "RoleId": "AROA222222222222DATAPIPE",
       "Path": "/",
-      "CreateDate": "2023-03-15T08:00:00Z",
+      "CreateDate": "2026-02-01T15:00:00Z",
       "AssumeRolePolicyDocument": {
         "Version": "2012-10-17",
         "Statement": [
           {
             "Effect": "Allow",
-            "Principal": {"Service": "ec2.amazonaws.com"},
+            "Principal": { "Service": "datapipeline.amazonaws.com" },
             "Action": "sts:AssumeRole"
           }
         ]
       },
-      "AttachedManagedPolicies": [
-        {"PolicyName": "AdminPolicy", "PolicyArn": "arn:aws:iam::111111111111:policy/AdminPolicy"}
-      ],
-      "RolePolicyList": []
-    },
-    {
-      "RoleId": "AROAROLE005",
-      "RoleName": "CrossAccountRole",
-      "Arn": "arn:aws:iam::111111111111:role/CrossAccountRole",
-      "Path": "/",
-      "CreateDate": "2023-04-01T08:00:00Z",
-      "AssumeRolePolicyDocument": {
-        "Version": "2012-10-17",
-        "Statement": [
-          {
-            "Effect": "Allow",
-            "Principal": {"AWS": "arn:aws:iam::222222222222:root"},
-            "Action": "sts:AssumeRole",
-            "Condition": {
-              "StringEquals": {"sts:ExternalId": "audit-ext-12345"}
-            }
-          }
-        ]
-      },
-      "AttachedManagedPolicies": [
-        {"PolicyName": "AdminPolicy", "PolicyArn": "arn:aws:iam::111111111111:policy/AdminPolicy"}
-      ],
-      "RolePolicyList": []
-    },
-    {
-      "RoleId": "AROAROLE006",
-      "RoleName": "CIServiceRole",
-      "Arn": "arn:aws:iam::111111111111:role/CIServiceRole",
-      "Path": "/ci/",
-      "CreateDate": "2023-05-01T08:00:00Z",
-      "AssumeRolePolicyDocument": {
-        "Version": "2012-10-17",
-        "Statement": [
-          {
-            "Effect": "Allow",
-            "Principal": {"AWS": "arn:aws:iam::111111111111:user/ci-bot"},
-            "Action": "sts:AssumeRole"
-          }
-        ]
-      },
-      "AttachedManagedPolicies": [
-        {"PolicyName": "CIPolicy", "PolicyArn": "arn:aws:iam::111111111111:policy/CIPolicy"}
-      ],
+      "AttachedManagedPolicies": [],
       "RolePolicyList": []
     }
   ],
   "GroupDetailList": [
     {
-      "GroupId": "AGPAGROUP001",
-      "GroupName": "dev-group",
-      "Arn": "arn:aws:iam::111111111111:group/dev-group",
+      "Arn": "arn:aws:iam::111111111111:group/DevelopersGroup",
+      "GroupName": "DevelopersGroup",
+      "GroupId": "AGPA111111111111DEV",
       "Path": "/",
-      "CreateDate": "2022-11-01T08:00:00Z",
-      "GroupPolicyList": [],
+      "CreateDate": "2026-01-01T00:00:00Z",
       "AttachedManagedPolicies": [
-        {"PolicyName": "DevPolicy", "PolicyArn": "arn:aws:iam::111111111111:policy/DevPolicy"}
-      ]
+        {
+          "PolicyName": "DevBasePolicy",
+          "PolicyArn": "arn:aws:iam::111111111111:policy/DevBasePolicy"
+        }
+      ],
+      "GroupPolicyList": []
     },
     {
-      "GroupId": "AGPAGROUP002",
-      "GroupName": "ops-group",
-      "Arn": "arn:aws:iam::111111111111:group/ops-group",
+      "Arn": "arn:aws:iam::111111111111:group/OperationsGroup",
+      "GroupName": "OperationsGroup",
+      "GroupId": "AGPA111111111111OPS",
       "Path": "/",
-      "CreateDate": "2022-11-01T08:00:00Z",
-      "GroupPolicyList": [],
-      "AttachedManagedPolicies": [
-        {"PolicyName": "OpsPolicy", "PolicyArn": "arn:aws:iam::111111111111:policy/OpsPolicy"}
-      ]
+      "CreateDate": "2026-01-01T00:00:00Z",
+      "AttachedManagedPolicies": [],
+      "GroupPolicyList": []
     },
     {
-      "GroupId": "AGPAGROUP003",
-      "GroupName": "readonly-group",
-      "Arn": "arn:aws:iam::111111111111:group/readonly-group",
+      "Arn": "arn:aws:iam::111111111111:group/AnalyticsGroup",
+      "GroupName": "AnalyticsGroup",
+      "GroupId": "AGPA111111111111ANALYTICS",
       "Path": "/",
-      "CreateDate": "2022-11-01T08:00:00Z",
-      "GroupPolicyList": [],
-      "AttachedManagedPolicies": [
-        {"PolicyName": "ReadOnlyPolicy", "PolicyArn": "arn:aws:iam::111111111111:policy/ReadOnlyPolicy"}
-      ]
+      "CreateDate": "2026-01-01T00:00:00Z",
+      "AttachedManagedPolicies": [],
+      "GroupPolicyList": []
+    },
+    {
+      "Arn": "arn:aws:iam::111111111111:group/AuditorsGroup",
+      "GroupName": "AuditorsGroup",
+      "GroupId": "AGPA111111111111AUDITORS",
+      "Path": "/",
+      "CreateDate": "2026-01-01T00:00:00Z",
+      "AttachedManagedPolicies": [],
+      "GroupPolicyList": []
     }
   ],
   "Policies": [
     {
-      "PolicyId": "ANPAPOLID001",
-      "PolicyName": "AdminPolicy",
-      "Arn": "arn:aws:iam::111111111111:policy/AdminPolicy",
+      "PolicyName": "AdministratorAccess",
+      "PolicyId": "ANPAI4UIINUVVEXAMPLE",
+      "Arn": "arn:aws:iam::aws:policy/AdministratorAccess",
       "Path": "/",
       "DefaultVersionId": "v1",
+      "AttachmentCount": 2,
       "IsAttachable": true,
       "PolicyVersionList": [
         {
           "VersionId": "v1",
           "IsDefaultVersion": true,
+          "CreateDate": "2015-02-06T18:40:58Z",
           "Document": {
             "Version": "2012-10-17",
             "Statement": [
               {
-                "Sid": "FullAdmin",
                 "Effect": "Allow",
                 "Action": "*",
                 "Resource": "*"
@@ -304,36 +346,31 @@
       ]
     },
     {
-      "PolicyId": "ANPAPOLID002",
-      "PolicyName": "DevPolicy",
-      "Arn": "arn:aws:iam::111111111111:policy/DevPolicy",
+      "PolicyName": "DevEC2Policy",
+      "PolicyId": "ANPA111111111111DEVEC2",
+      "Arn": "arn:aws:iam::111111111111:policy/DevEC2Policy",
       "Path": "/",
       "DefaultVersionId": "v1",
+      "AttachmentCount": 1,
       "IsAttachable": true,
       "PolicyVersionList": [
         {
           "VersionId": "v1",
           "IsDefaultVersion": true,
+          "CreateDate": "2026-01-10T10:05:00Z",
           "Document": {
             "Version": "2012-10-17",
             "Statement": [
               {
-                "Sid": "EC2Dev",
+                "Sid": "AllowEC2Deploy",
                 "Effect": "Allow",
-                "Action": ["ec2:DescribeInstances", "ec2:RunInstances", "ec2:StopInstances"],
+                "Action": [
+                  "ec2:RunInstances",
+                  "ec2:DescribeInstances",
+                  "ec2:StopInstances",
+                  "ec2:StartInstances"
+                ],
                 "Resource": "*"
-              },
-              {
-                "Sid": "S3Dev",
-                "Effect": "Allow",
-                "Action": ["s3:GetObject", "s3:PutObject", "s3:ListBucket"],
-                "Resource": ["arn:aws:s3:::dev-bucket", "arn:aws:s3:::dev-bucket/*"]
-              },
-              {
-                "Sid": "AssumeDevRole",
-                "Effect": "Allow",
-                "Action": "sts:AssumeRole",
-                "Resource": "arn:aws:iam::111111111111:role/DevRole"
               }
             ]
           }
@@ -341,24 +378,26 @@
       ]
     },
     {
-      "PolicyId": "ANPAPOLID003",
-      "PolicyName": "PassRolePolicy",
-      "Arn": "arn:aws:iam::111111111111:policy/PassRolePolicy",
+      "PolicyName": "PassRoleToAdminPolicy",
+      "PolicyId": "ANPA111111111111PASSADMIN",
+      "Arn": "arn:aws:iam::111111111111:policy/PassRoleToAdminPolicy",
       "Path": "/",
       "DefaultVersionId": "v1",
+      "AttachmentCount": 1,
       "IsAttachable": true,
       "PolicyVersionList": [
         {
           "VersionId": "v1",
           "IsDefaultVersion": true,
+          "CreateDate": "2026-01-10T12:05:00Z",
           "Document": {
             "Version": "2012-10-17",
             "Statement": [
               {
-                "Sid": "PassAnyRole",
+                "Sid": "DangerousPassRoleUnrestricted",
                 "Effect": "Allow",
                 "Action": "iam:PassRole",
-                "Resource": "*"
+                "Resource": "arn:aws:iam::111111111111:role/AdminRole"
               }
             ]
           }
@@ -366,30 +405,31 @@
       ]
     },
     {
-      "PolicyId": "ANPAPOLID004",
-      "PolicyName": "OpsPolicy",
-      "Arn": "arn:aws:iam::111111111111:policy/OpsPolicy",
+      "PolicyName": "OpsPolicyVersionPrivesc",
+      "PolicyId": "ANPA111111111111OPSPRIVESC",
+      "Arn": "arn:aws:iam::111111111111:policy/OpsPolicyVersionPrivesc",
       "Path": "/",
       "DefaultVersionId": "v1",
+      "AttachmentCount": 1,
       "IsAttachable": true,
       "PolicyVersionList": [
         {
           "VersionId": "v1",
           "IsDefaultVersion": true,
+          "CreateDate": "2026-01-12T11:10:00Z",
           "Document": {
             "Version": "2012-10-17",
             "Statement": [
               {
-                "Sid": "EC2Ops",
+                "Sid": "AllowPolicyVersioning",
                 "Effect": "Allow",
-                "Action": ["ec2:*"],
-                "Resource": "*"
-              },
-              {
-                "Sid": "CloudWatchOps",
-                "Effect": "Allow",
-                "Action": ["cloudwatch:*"],
-                "Resource": "*"
+                "Action": [
+                  "iam:CreatePolicyVersion",
+                  "iam:SetDefaultPolicyVersion",
+                  "iam:GetPolicy",
+                  "iam:GetPolicyVersion"
+                ],
+                "Resource": "arn:aws:iam::111111111111:policy/OpsPolicyVersionPrivesc"
               }
             ]
           }
@@ -397,107 +437,221 @@
       ]
     },
     {
-      "PolicyId": "ANPAPOLID005",
-      "PolicyName": "ReadOnlyPolicy",
-      "Arn": "arn:aws:iam::111111111111:policy/ReadOnlyPolicy",
+      "PolicyName": "ContractorCrossAccountPolicy",
+      "PolicyId": "ANPA111111111111CONTRACTOR",
+      "Arn": "arn:aws:iam::111111111111:policy/ContractorCrossAccountPolicy",
       "Path": "/",
       "DefaultVersionId": "v1",
+      "AttachmentCount": 1,
       "IsAttachable": true,
       "PolicyVersionList": [
         {
           "VersionId": "v1",
           "IsDefaultVersion": true,
+          "CreateDate": "2026-02-01T09:40:00Z",
           "Document": {
             "Version": "2012-10-17",
             "Statement": [
               {
-                "Sid": "ReadOnly",
-                "Effect": "Allow",
-                "Action": ["s3:GetObject", "s3:ListBucket", "ec2:Describe*", "cloudwatch:Get*"],
-                "Resource": "*"
-              }
-            ]
-          }
-        }
-      ]
-    },
-    {
-      "PolicyId": "ANPAPOLID006",
-      "PolicyName": "CIPolicy",
-      "Arn": "arn:aws:iam::111111111111:policy/CIPolicy",
-      "Path": "/",
-      "DefaultVersionId": "v1",
-      "IsAttachable": true,
-      "PolicyVersionList": [
-        {
-          "VersionId": "v1",
-          "IsDefaultVersion": true,
-          "Document": {
-            "Version": "2012-10-17",
-            "Statement": [
-              {
-                "Sid": "ECRAccess",
-                "Effect": "Allow",
-                "Action": ["ecr:GetAuthorizationToken", "ecr:PutImage", "ecr:BatchGetImage"],
-                "Resource": "*"
-              },
-              {
-                "Sid": "S3Artifacts",
-                "Effect": "Allow",
-                "Action": ["s3:PutObject", "s3:GetObject"],
-                "Resource": "arn:aws:s3:::ci-artifacts-bucket/*"
-              }
-            ]
-          }
-        }
-      ]
-    },
-    {
-      "PolicyId": "ANPAPOLID007",
-      "PolicyName": "CreateVersionPolicy",
-      "Arn": "arn:aws:iam::111111111111:policy/CreateVersionPolicy",
-      "Path": "/",
-      "DefaultVersionId": "v1",
-      "IsAttachable": true,
-      "_escalation_chain": "B: ci-bot has iam:CreatePolicyVersion on * — can overwrite any managed policy with admin-granting content, including CIPolicy itself (self-privesc)",
-      "PolicyVersionList": [
-        {
-          "VersionId": "v1",
-          "IsDefaultVersion": true,
-          "Document": {
-            "Version": "2012-10-17",
-            "Statement": [
-              {
-                "Sid": "CreateNewPolicyVersions",
-                "Effect": "Allow",
-                "Action": ["iam:CreatePolicyVersion"],
-                "Resource": "*"
-              }
-            ]
-          }
-        }
-      ]
-    },
-    {
-      "PolicyId": "ANPAPOLID008",
-      "PolicyName": "CrossAccountPolicy",
-      "Arn": "arn:aws:iam::222222222222:policy/CrossAccountPolicy",
-      "Path": "/",
-      "DefaultVersionId": "v1",
-      "IsAttachable": true,
-      "_escalation_chain": "C: external-auditor in account 222222222222 can assume CrossAccountRole in 111111111111 which has AdminPolicy attached",
-      "PolicyVersionList": [
-        {
-          "VersionId": "v1",
-          "IsDefaultVersion": true,
-          "Document": {
-            "Version": "2012-10-17",
-            "Statement": [
-              {
-                "Sid": "AssumeAuditRole",
+                "Sid": "AllowCrossAccountAssume",
                 "Effect": "Allow",
                 "Action": "sts:AssumeRole",
-                "Resource": "arn:aws:iam::111111111111:role/CrossAccountRole"
+                "Resource": "arn:aws:iam::222222222222:role/CrossAccountDeployRole"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "PolicyName": "AssumeOrgAdminPolicy",
+      "PolicyId": "ANPA222222222222ORGADMIN",
+      "Arn": "arn:aws:iam::222222222222:policy/AssumeOrgAdminPolicy",
+      "Path": "/",
+      "DefaultVersionId": "v1",
+      "AttachmentCount": 1,
+      "IsAttachable": true,
+      "PolicyVersionList": [
+        {
+          "VersionId": "v1",
+          "IsDefaultVersion": true,
+          "CreateDate": "2026-01-20T10:15:00Z",
+          "Document": {
+            "Version": "2012-10-17",
+            "Statement": [
+              {
+                "Sid": "AllowAssumeOrgAdmin",
+                "Effect": "Allow",
+                "Action": "sts:AssumeRole",
+                "Resource": "arn:aws:iam::222222222222:role/OrgAdminRole"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "PolicyName": "AnalystWildcardS3Policy",
+      "PolicyId": "ANPA111111111111S3WILDCARD",
+      "Arn": "arn:aws:iam::111111111111:policy/AnalystWildcardS3Policy",
+      "Path": "/",
+      "DefaultVersionId": "v1",
+      "AttachmentCount": 1,
+      "IsAttachable": true,
+      "PolicyVersionList": [
+        {
+          "VersionId": "v1",
+          "IsDefaultVersion": true,
+          "CreateDate": "2026-02-15T14:25:00Z",
+          "Document": {
+            "Version": "2012-10-17",
+            "Statement": [
+              {
+                "Sid": "OverpermissiveS3Wildcard",
+                "Effect": "Allow",
+                "Action": "s3:*",
+                "Resource": "*"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "PolicyName": "QAPolicyVersionSwitch",
+      "PolicyId": "ANPA111111111111QASWITCH",
+      "Arn": "arn:aws:iam::111111111111:policy/QAPolicyVersionSwitch",
+      "Path": "/",
+      "DefaultVersionId": "v2",
+      "AttachmentCount": 1,
+      "IsAttachable": true,
+      "PolicyVersionList": [
+        {
+          "VersionId": "v1",
+          "IsDefaultVersion": false,
+          "CreateDate": "2026-02-28T10:00:00Z",
+          "Document": {
+            "Version": "2012-10-17",
+            "Statement": [
+              {
+                "Effect": "Allow",
+                "Action": "*",
+                "Resource": "*"
+              }
+            ]
+          }
+        },
+        {
+          "VersionId": "v2",
+          "IsDefaultVersion": true,
+          "CreateDate": "2026-03-01T08:15:00Z",
+          "Document": {
+            "Version": "2012-10-17",
+            "Statement": [
+              {
+                "Sid": "AllowSwitchVersion",
+                "Effect": "Allow",
+                "Action": [
+                  "iam:SetDefaultPolicyVersion",
+                  "iam:GetPolicyVersion",
+                  "iam:ListPolicyVersions"
+                ],
+                "Resource": "arn:aws:iam::111111111111:policy/QAPolicyVersionSwitch"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "PolicyName": "DevBasePolicy",
+      "PolicyId": "ANPA111111111111DEVBASE",
+      "Arn": "arn:aws:iam::111111111111:policy/DevBasePolicy",
+      "Path": "/",
+      "DefaultVersionId": "v1",
+      "AttachmentCount": 1,
+      "IsAttachable": true,
+      "PolicyVersionList": [
+        {
+          "VersionId": "v1",
+          "IsDefaultVersion": true,
+          "CreateDate": "2026-01-01T00:00:00Z",
+          "Document": {
+            "Version": "2012-10-17",
+            "Statement": [
+              {
+                "Sid": "DevReadOnlyAWS",
+                "Effect": "Allow",
+                "Action": [
+                  "ec2:Describe*",
+                  "s3:ListAllMyBuckets",
+                  "cloudwatch:GetMetricData"
+                ],
+                "Resource": "*"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "PolicyName": "SecurityAuditReadOnly",
+      "PolicyId": "ANPA111111111111SECAUDIT",
+      "Arn": "arn:aws:iam::111111111111:policy/SecurityAuditReadOnly",
+      "Path": "/",
+      "DefaultVersionId": "v1",
+      "AttachmentCount": 1,
+      "IsAttachable": true,
+      "PolicyVersionList": [
+        {
+          "VersionId": "v1",
+          "IsDefaultVersion": true,
+          "CreateDate": "2026-01-05T09:05:00Z",
+          "Document": {
+            "Version": "2012-10-17",
+            "Statement": [
+              {
+                "Sid": "ReadOnlySecurityAudit",
+                "Effect": "Allow",
+                "Action": [
+                  "iam:GenerateCredentialReport",
+                  "iam:Get*",
+                  "iam:List*",
+                  "securityhub:Get*",
+                  "guardduty:Get*"
+                ],
+                "Resource": "*"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "PolicyName": "BillingReadOnly",
+      "PolicyId": "ANPA111111111111BILLING",
+      "Arn": "arn:aws:iam::111111111111:policy/BillingReadOnly",
+      "Path": "/",
+      "DefaultVersionId": "v1",
+      "AttachmentCount": 1,
+      "IsAttachable": true,
+      "PolicyVersionList": [
+        {
+          "VersionId": "v1",
+          "IsDefaultVersion": true,
+          "CreateDate": "2026-02-10T11:20:00Z",
+          "Document": {
+            "Version": "2012-10-17",
+            "Statement": [
+              {
+                "Sid": "BillingViewsOnly",
+                "Effect": "Allow",
+                "Action": [
+                  "aws-portal:ViewBilling",
+                  "aws-portal:ViewUsage",
+                  "ce:GetCostAndUsage"
+                ],
+                "Resource": "*"
               }
             ]
           }
@@ -506,4 +660,3 @@
     }
   ]
 }
-

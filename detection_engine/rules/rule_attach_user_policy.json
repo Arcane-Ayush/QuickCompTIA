@@ -1,0 +1,23 @@
+{
+  "id": "RULE-006",
+  "name": "AttachUserPolicy administrative self-grant",
+  "type": "known_pattern",
+  "description": "Principal has iam:AttachUserPolicy or iam:PutUserPolicy on their own identity or other users, enabling direct attachment of AdministratorAccess.",
+  "required_actions": [
+    ["iam:AttachUserPolicy", "iam:PutUserPolicy"]
+  ],
+  "base_exploit_triviality": 0.96,
+  "default_reachability": 0.95,
+  "default_blast_radius": 0.99,
+  "mitre_technique": "T1098",
+  "remediation_template": {
+    "action": "iam:AttachUserPolicy",
+    "resource": "arn:aws:iam::{account_id}:user/sandbox-*",
+    "condition": {
+      "ArnEquals": {
+        "iam:PolicyARN": "arn:aws:iam::{account_id}:policy/ReadOnlySandbox"
+      }
+    },
+    "justification": "Restricts policy attachment strictly to sandbox user namespaces and pre-approved non-administrative policy ARNs."
+  }
+}
