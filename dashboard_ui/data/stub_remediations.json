@@ -1,0 +1,51 @@
+{
+  "remediations": [
+    {
+      "finding_id": "F-001",
+      "original_statement": {
+        "action": "iam:PassRole",
+        "resource": "*"
+      },
+      "suggested_statement": {
+        "action": "iam:PassRole",
+        "resource": "arn:aws:iam::111111111111:role/AppRole-*",
+        "condition": {
+          "StringEquals": {
+            "iam:PassedToService": "ec2.amazonaws.com"
+          }
+        }
+      },
+      "justification": "Restricts PassRole to only the application role prefix (AppRole-*) and only when passed to EC2, closing the unrestricted admin-role pivot that enabled credential theft via RunInstances."
+    },
+    {
+      "finding_id": "F-002",
+      "remediable": false,
+      "original_statement": {
+        "action": "sts:AssumeRole",
+        "resource": "*"
+      },
+      "suggested_statement": null,
+      "justification": "This novel cross-account trust chain requires architectural review — the reverse trust from account 222222222222 back to AdminRole in 111111111111 should be evaluated by both account owners before modifying trust policies."
+    },
+    {
+      "finding_id": "F-003",
+      "original_statement": {
+        "action": "iam:PassRole",
+        "resource": "*"
+      },
+      "suggested_statement": {
+        "action": "iam:PassRole",
+        "resource": "arn:aws:iam::111111111111:role/AppRole-*",
+        "condition": {
+          "StringEquals": {
+            "iam:PassedToService": [
+              "ec2.amazonaws.com",
+              "lambda.amazonaws.com"
+            ]
+          }
+        }
+      },
+      "justification": "Scopes the wildcard PassRole down to the AppRole- prefix and restricts the receiving services to EC2 and Lambda only, eliminating the ability to pass arbitrary roles including AdminRole."
+    }
+  ]
+}
