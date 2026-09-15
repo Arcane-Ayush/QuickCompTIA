@@ -1,0 +1,170 @@
+{
+  "remediations": [
+    {
+      "finding_id": "F-002",
+      "remediable": true,
+      "original_statement": {
+        "action": "iam:CreatePolicyVersion",
+        "resource": "arn:aws:iam::111111111111:policy/OpsPolicyVersionPrivesc"
+      },
+      "suggested_statement": {
+        "action": "iam:CreatePolicyVersion",
+        "resource": "arn:aws:iam::111111111111:policy/dev/*",
+        "condition": null
+      },
+      "justification": "Restricts policy version authoring to scoped sandbox/dev namespaces, preventing direct manipulation of production administrative policies."
+    },
+    {
+      "finding_id": "F-001",
+      "remediable": true,
+      "original_statement": {
+        "action": "iam:PassRole",
+        "resource": "*"
+      },
+      "suggested_statement": {
+        "action": "iam:PassRole",
+        "resource": "arn:aws:iam::111111111111:role/AppRole-*",
+        "condition": {
+          "StringEquals": {
+            "iam:PassedToService": "ec2.amazonaws.com"
+          }
+        }
+      },
+      "justification": "Restricts PassRole to only the application role prefix and only when passed to EC2, closing the unrestricted admin-role pivot."
+    },
+    {
+      "finding_id": "F-003",
+      "remediable": true,
+      "original_statement": {
+        "action": "sts:AssumeRole",
+        "resource": "arn:aws:iam::222222222222:role/CrossAccountDeployRole"
+      },
+      "suggested_statement": {
+        "action": "sts:AssumeRole",
+        "resource": "arn:aws:iam::222222222222:role/ContractorScopedRole-*",
+        "condition": {
+          "Bool": {
+            "aws:MultiFactorAuthPresent": "true"
+          }
+        }
+      },
+      "justification": "Restricts cross-account assumption strictly to designated contractor roles and enforces mandatory MFA authentication."
+    },
+    {
+      "finding_id": "F-004",
+      "remediable": true,
+      "original_statement": {
+        "action": "iam:SetDefaultPolicyVersion",
+        "resource": "arn:aws:iam::111111111111:policy/QAPolicyVersionSwitch"
+      },
+      "suggested_statement": {
+        "action": "iam:GetPolicyVersion",
+        "resource": "arn:aws:iam::111111111111:policy/QAPolicyVersionSwitch",
+        "condition": null
+      },
+      "justification": "Demotes policy management permission to read-only inspection, preventing rollback to insecure legacy policy versions."
+    },
+    {
+      "finding_id": "F-005",
+      "remediable": true,
+      "original_statement": {
+        "action": "s3:*",
+        "resource": "*"
+      },
+      "suggested_statement": {
+        "action": "s3:GetObject",
+        "resource": "arn:aws:s3:::company-analytics-data-111111111111/*",
+        "condition": {
+          "Bool": {
+            "aws:SecureTransport": "true"
+          }
+        }
+      },
+      "justification": "Restricts wildcard S3 permissions to read-only GetObject calls on the specific analytics data bucket with mandatory TLS."
+    },
+    {
+      "finding_id": "F-007",
+      "remediable": false,
+      "original_statement": {
+        "action": "sts:AssumeRole",
+        "resource": "arn:aws:iam::111111111111:role/AdminRole"
+      },
+      "suggested_statement": {
+        "action": "sts:AssumeRole",
+        "resource": "arn:aws:iam::111111111111:role/AdminRole",
+        "condition": null
+      },
+      "justification": "Novel composite attack path requires architectural role trust boundary decoupling rather than a single policy modification."
+    },
+    {
+      "finding_id": "F-009",
+      "remediable": false,
+      "original_statement": {
+        "action": "sts:AssumeRole",
+        "resource": "arn:aws:iam::222222222222:role/OrgAdminRole"
+      },
+      "suggested_statement": {
+        "action": "sts:AssumeRole",
+        "resource": "arn:aws:iam::222222222222:role/OrgAdminRole",
+        "condition": null
+      },
+      "justification": "Novel composite attack path requires architectural role trust boundary decoupling rather than a single policy modification."
+    },
+    {
+      "finding_id": "F-006",
+      "remediable": false,
+      "original_statement": {
+        "action": "sts:AssumeRole",
+        "resource": "arn:aws:iam::111111111111:role/AdminRole"
+      },
+      "suggested_statement": {
+        "action": "sts:AssumeRole",
+        "resource": "arn:aws:iam::111111111111:role/AdminRole",
+        "condition": null
+      },
+      "justification": "Novel composite attack path requires architectural role trust boundary decoupling rather than a single policy modification."
+    },
+    {
+      "finding_id": "F-010",
+      "remediable": false,
+      "original_statement": {
+        "action": "sts:AssumeRole",
+        "resource": "arn:aws:iam::222222222222:role/OrgAdminRole"
+      },
+      "suggested_statement": {
+        "action": "sts:AssumeRole",
+        "resource": "arn:aws:iam::222222222222:role/OrgAdminRole",
+        "condition": null
+      },
+      "justification": "Novel composite attack path requires architectural role trust boundary decoupling rather than a single policy modification."
+    },
+    {
+      "finding_id": "F-011",
+      "remediable": false,
+      "original_statement": {
+        "action": "sts:AssumeRole",
+        "resource": "arn:aws:iam::222222222222:role/OrgAdminRole"
+      },
+      "suggested_statement": {
+        "action": "sts:AssumeRole",
+        "resource": "arn:aws:iam::222222222222:role/OrgAdminRole",
+        "condition": null
+      },
+      "justification": "Novel composite attack path requires architectural role trust boundary decoupling rather than a single policy modification."
+    },
+    {
+      "finding_id": "F-008",
+      "remediable": false,
+      "original_statement": {
+        "action": "sts:AssumeRole",
+        "resource": "arn:aws:iam::111111111111:role/AdminRole"
+      },
+      "suggested_statement": {
+        "action": "sts:AssumeRole",
+        "resource": "arn:aws:iam::111111111111:role/AdminRole",
+        "condition": null
+      },
+      "justification": "Novel composite attack path requires architectural role trust boundary decoupling rather than a single policy modification."
+    }
+  ]
+}
