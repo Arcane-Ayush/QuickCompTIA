@@ -1,0 +1,19 @@
+{
+  "id": "RULE-002",
+  "name": "CreatePolicyVersion self-privilege escalation",
+  "type": "known_pattern",
+  "description": "Principal has iam:CreatePolicyVersion permission on an attached managed policy, allowing them to create a new default policy version with Action: * and Resource: * to become a full administrator.",
+  "required_actions": [
+    ["iam:CreatePolicyVersion"]
+  ],
+  "base_exploit_triviality": 0.95,
+  "default_reachability": 0.92,
+  "default_blast_radius": 0.98,
+  "mitre_technique": "T1098",
+  "remediation_template": {
+    "action": "iam:CreatePolicyVersion",
+    "resource": "arn:aws:iam::{account_id}:policy/dev/*",
+    "condition": null,
+    "justification": "Restricts policy authoring to scoped non-privileged developer policy paths and enforces mandatory CI/CD security review for production IAM policies."
+  }
+}
