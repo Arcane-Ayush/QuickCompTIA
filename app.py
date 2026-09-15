@@ -16,8 +16,8 @@ from dashboard_ui.server import start_server
 def main():
     """Execute pipeline and launch dashboard UI."""
     parser = argparse.ArgumentParser(description="Cloud IAM Misconfiguration Detector Pipeline")
-    parser.add_argument("pos_input", nargs="?", default=None, help="Path to raw IAM JSON export file (positional argument)")
-    parser.add_argument("--input", "-i", default=None, help="Path to raw IAM JSON export file")
+    parser.add_argument("pos_input", nargs="*", default=[], help="Path(s) to raw IAM JSON export file(s) or directories")
+    parser.add_argument("--input", "-i", default=None, help="Path to raw IAM JSON export file or directory")
     parser.add_argument("--outdir", "-o", default=".", help="Output directory for generated JSON files")
     parser.add_argument("--port", "-p", type=int, default=8080, help="Port for dashboard UI server (default: 8080)")
     parser.add_argument("--no-serve", action="store_true", help="Do not launch dashboard server")
@@ -25,10 +25,15 @@ def main():
 
     args = parser.parse_args()
 
-    input_file = args.pos_input or args.input or "sample_data/iam_export_sample.json"
+    if args.pos_input:
+        input_files = args.pos_input if len(args.pos_input) > 1 else args.pos_input[0]
+    elif args.input:
+        input_files = args.input
+    else:
+        input_files = "sample_data/iam_export_sample.json"
 
     # Step 1-3: Run Pipeline
-    run_pipeline(input_iam_path=input_file, out_dir=args.outdir)
+    run_pipeline(input_iam_path=input_files, out_dir=args.outdir)
 
     # Step 4: Launch UI Server
     if not args.no_serve:

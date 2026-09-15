@@ -139,6 +139,51 @@ class IAMParser:
         self.policy_doc_lookup: Dict[str, Dict[str, Any]] = {}
         self._index_managed_policies()
 
+    @classmethod
+    def merge_multiple(cls, parsers: List['IAMParser']) -> 'IAMParser':
+        """Merges multiple IAMParser instances into a single combined IAMParser."""
+        combined_raw = {
+            "UserDetailList": [],
+            "RoleDetailList": [],
+            "GroupDetailList": [],
+            "Policies": [],
+        }
+        merged_parser = cls(combined_raw, source_name="Combined")
+        merged_parser.users = []
+        merged_parser.roles = []
+        merged_parser.groups = []
+        merged_parser.managed_policies = []
+
+        seen_users = set()
+        seen_roles = set()
+        seen_groups = set()
+        seen_policies = set()
+
+        for p in parsers:
+            for u in p.users:
+                u_arn = u.get("Arn")
+                if u_arn not in seen_users:
+                    seen_users.add(u_arn)
+                    merged_parser.users.append(u)
+            for r in p.roles:
+                r_arn = r.get("Arn")
+                if r_arn not in seen_roles:
+                    seen_roles.add(r_arn)
+                    merged_parser.roles.append(r)
+            for g in p.groups:
+                g_arn = g.get("Arn")
+                if g_arn not in seen_groups:
+                    seen_groups.add(g_arn)
+                    merged_parser.groups.append(g)
+            for pol in p.managed_policies:
+                pol_arn = pol.get("Arn")
+                if pol_arn not in seen_policies:
+                    seen_policies.add(pol_arn)
+                    merged_parser.managed_policies.append(pol)
+            merged_parser.policy_doc_lookup.update(p.policy_doc_lookup)
+
+        return merged_parser
+
     def _index_managed_policies(self) -> None:
         """Indexes default document for each managed policy."""
         for pol in self.managed_policies:

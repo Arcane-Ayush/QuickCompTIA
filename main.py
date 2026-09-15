@@ -100,15 +100,15 @@ def main():
     parser = argparse.ArgumentParser(description="Cloud IAM Misconfiguration Detector Pipeline")
     parser.add_argument(
         "pos_input",
-        nargs="?",
-        default=None,
-        help="Path to raw IAM authorization JSON file (positional argument)"
+        nargs="*",
+        default=[],
+        help="Path(s) to raw IAM authorization JSON file(s) or directories"
     )
     parser.add_argument(
         "--input",
         "-i",
         default=None,
-        help="Path to raw IAM authorization JSON file",
+        help="Path to raw IAM authorization JSON file or directory",
     )
     parser.add_argument(
         "--outdir",
@@ -129,9 +129,15 @@ def main():
     )
 
     args = parser.parse_args()
-    input_file = args.pos_input or args.input or "sample_data/iam_export_sample.json"
+    if args.pos_input:
+        input_files = args.pos_input if len(args.pos_input) > 1 else args.pos_input[0]
+    elif args.input:
+        input_files = args.input
+    else:
+        input_files = "sample_data/iam_export_sample.json"
+
     run_pipeline(
-        input_iam_path=input_file,
+        input_iam_path=input_files,
         out_dir=args.outdir,
         train_ml=args.train,
         sync_dashboard=not args.no_sync,

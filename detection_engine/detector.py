@@ -466,19 +466,40 @@ class DetectionEngine:
 
 def detect_and_export(
     graph_path: str = "graph_export.json",
-    raw_iam_path: Optional[str] = "sample_data/iam_export_sample.json",
+    raw_iam_path: Any = "sample_data/iam_export_sample.json",
     output_path: str = "findings.json",
 ) -> Dict[str, Any]:
     """Runs detection engine and exports findings.json."""
     with open(graph_path, "r", encoding="utf-8") as f:
         graph_data = json.load(f)
 
-    raw_data = None
-    if raw_iam_path and os.path.exists(raw_iam_path):
+    raw_data_list = []
+    if isinstance(raw_iam_path, list):
+        for p in raw_iam_path:
+            if isinstance(p, str) and os.path.exists(p):
+                with open(p, "r", encoding="utf-8") as f:
+                    try:
+                        raw_data_list.append(json.load(f))
+                    except Exception:
+                        pass
+    elif isinstance(raw_iam_path, str) and os.path.exists(raw_iam_path):
         with open(raw_iam_path, "r", encoding="utf-8") as f:
-            raw_data = json.load(f)
+            try:
+                raw_data_list.append(json.load(f))
+            except Exception:
+                pass
 
-    engine = DetectionEngine(graph_data=graph_data, raw_iam_data=raw_data)
+    combined_raw: Dict[str, Any] = {"Statement": []}
+    for rdata in raw_data_list:
+        if "Statement" in rdata:
+            stmts = rdata["Statement"]
+            if isinstance(stmts, dict):
+                stmts = [stmts]
+            combined_raw["Statement"].extend(stmts)
+
+    effective_raw = combined_raw if combined_raw["Statement"] else (raw_data_list[0] if raw_data_list else None)
+
+    engine = DetectionEngine(graph_data=graph_data, raw_iam_data=effective_raw)
     findings_dict = engine.run_detection()
 
     with open(output_path, "w", encoding="utf-8") as f:

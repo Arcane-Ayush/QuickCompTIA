@@ -227,13 +227,42 @@ class IAMGraphBuilder:
         }
 
 
-def parse_and_export(input_path: str, output_path: str) -> Dict[str, Any]:
-    """Parses raw authorization JSON and writes graph_export.json."""
-    with open(input_path, "r", encoding="utf-8") as f:
-        data = json.load(f)
+def parse_and_export(input_path: Any, output_path: str) -> Dict[str, Any]:
+    """Parses one or more raw authorization JSON files/directories and writes a single combined graph_export.json."""
+    import os
+    import glob
 
-    parser = IAMParser(data, source_name=input_path)
-    builder = IAMGraphBuilder(parser)
+    file_list = []
+    if isinstance(input_path, list):
+        for p in input_path:
+            if os.path.isdir(p):
+                file_list.extend(glob.glob(os.path.join(p, "*.json")))
+            elif os.path.isfile(p):
+                file_list.append(p)
+    elif isinstance(input_path, str):
+        if os.path.isdir(input_path):
+            file_list.extend(glob.glob(os.path.join(input_path, "*.json")))
+        elif os.path.isfile(input_path):
+            file_list.append(input_path)
+
+    if not file_list:
+        file_list = ["sample_data/iam_export_sample.json"]
+
+    parsers = []
+    for fpath in file_list:
+        try:
+            with open(fpath, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            parsers.append(IAMParser(data, source_name=fpath))
+        except Exception as e:
+            print(f"Warning: Failed to load JSON from {fpath}: {e}")
+
+    if len(parsers) == 1:
+        merged_parser = parsers[0]
+    else:
+        merged_parser = IAMParser.merge_multiple(parsers)
+
+    builder = IAMGraphBuilder(merged_parser)
     graph_dict = builder.export_dict()
 
     with open(output_path, "w", encoding="utf-8") as f:
