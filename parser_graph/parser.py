@@ -3,6 +3,7 @@ Parser Module — IAM Authorization Document Parser & Statement Normalizer
 Person 1 Module — /parser_graph/parser.py
 """
 
+import os
 from typing import Any, Dict, List, Optional, Tuple
 
 
@@ -79,18 +80,20 @@ def extract_statements_from_doc(doc: Dict[str, Any], policy_arn: str) -> List[No
 class IAMParser:
     """Parses AWS GetAccountAuthorizationDetails export into principals, policies, and statements."""
 
-    def __init__(self, raw_data: Dict[str, Any]):
+    def __init__(self, raw_data: Dict[str, Any], source_name: str = "Custom"):
         """Initializes parser with raw authorization details dict or standalone IAM policy document."""
         self.raw_data = raw_data or {}
+        clean_name = os.path.basename(source_name).replace(".json", "").replace("_", "-") if source_name else "Custom"
         
         # Standalone IAM Policy Document auto-wrapping
         if "Statement" in self.raw_data or "Version" in self.raw_data:
-            synthetic_policy_arn = "arn:aws:iam::111111111111:policy/CustomPolicy"
+            synthetic_policy_arn = f"arn:aws:iam::111111111111:policy/{clean_name}-Policy"
+            user_arn = f"arn:aws:iam::111111111111:user/{clean_name}-user"
             self.managed_policies = [
                 {
                     "Arn": synthetic_policy_arn,
-                    "PolicyName": "CustomPolicy",
-                    "PolicyId": "ANPA111111111111CUSTOM",
+                    "PolicyName": f"{clean_name}-Policy",
+                    "PolicyId": f"ANPA111111111111{clean_name.upper()[:10]}",
                     "Path": "/",
                     "DefaultVersionId": "v1",
                     "AttachmentCount": 1,
@@ -106,12 +109,12 @@ class IAMParser:
             ]
             self.users = [
                 {
-                    "Arn": "arn:aws:iam::111111111111:user/custom-policy-user",
-                    "UserName": "custom-policy-user",
-                    "UserId": "AIDA111111111111CUSTOM",
+                    "Arn": user_arn,
+                    "UserName": f"{clean_name}-user",
+                    "UserId": f"AIDA111111111111{clean_name.upper()[:10]}",
                     "Path": "/",
                     "AttachedManagedPolicies": [
-                        {"PolicyArn": synthetic_policy_arn, "PolicyName": "CustomPolicy"}
+                        {"PolicyArn": synthetic_policy_arn, "PolicyName": f"{clean_name}-Policy"}
                     ]
                 }
             ]

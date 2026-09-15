@@ -232,7 +232,7 @@ def parse_and_export(input_path: str, output_path: str) -> Dict[str, Any]:
     with open(input_path, "r", encoding="utf-8") as f:
         data = json.load(f)
 
-    parser = IAMParser(data)
+    parser = IAMParser(data, source_name=input_path)
     builder = IAMGraphBuilder(parser)
     graph_dict = builder.export_dict()
 

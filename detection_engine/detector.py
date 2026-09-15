@@ -325,35 +325,44 @@ class DetectionEngine:
                     })
                     finding_counter += 1
 
-        # 5b. Match Admin & Full Wildcard Overpermission for all principals
+        # 5b. Match Dynamic Policy Statement Actions & Service Wildcards
         for n in self.graph_data.get("nodes", []):
             arn = n["id"]
             user_name = n.get("name", "User")
-            if n.get("is_admin_equivalent", False) and n.get("type") in ["user", "role"]:
-                already_flagged = any(f.get("path") and f["path"][0] == arn and f.get("type") == "wildcard_overpermission" for f in findings)
-                if not already_flagged:
-                    pol_arn = n["attached_policies"][0] if n.get("attached_policies") else f"{arn}:policy/inline"
-                    path = [arn, pol_arn]
+            pol_arn = n["attached_policies"][0] if n.get("attached_policies") else f"{arn}:policy/inline"
+            path = [arn, pol_arn]
+            
+            # Inspect raw IAM data for exact policy statements if available
+            stmts = []
+            if self.raw_iam_data and "Statement" in self.raw_iam_data:
+                stmts = self.raw_iam_data.get("Statement", [])
+                if isinstance(stmts, dict):
+                    stmts = [stmts]
+
+            for stmt in stmts:
+                if stmt.get("Effect", "Allow").lower() != "allow":
+                    continue
+                actions = stmt.get("Action", [])
+                if isinstance(actions, str):
+                    actions = [actions]
+                res = stmt.get("Resource", "*")
+
+                # Check action types
+                has_full_admin = any(a in ["*", "*:*"] for a in actions)
+                service_wildcards = [a for a in actions if a.endswith(":*") and a not in ["*", "*:*"]]
+                is_read_only = all(any(rw in a.lower() for rw in ["get", "list", "describe", "view"]) for a in actions) if actions else False
+
+                already_flagged = any(f.get("path") and f["path"][0] == arn for f in findings)
+                if already_flagged:
+                    continue
+
+                if has_full_admin:
                     features = self.scorer.extract_features(
-                        principal_arn=arn,
-                        path=path,
-                        shortest_path_dist=1,
-                        downstream_nodes=10,
-                        actions_present=["*"],
-                        resources_present=["*"],
-                        has_conditions=False,
-                        is_cross_account=False,
+                        principal_arn=arn, path=path, shortest_path_dist=1, downstream_nodes=10,
+                        actions_present=["*"], resources_present=["*"], has_conditions=False, is_cross_account=False
                     )
-                    risk_score, breakdown = self.scorer.score_vector(
-                        features,
-                        base_exploit_triviality=0.95,
-                        base_reachability=0.98,
-                        base_blast_radius=0.98,
-                    )
-                    narrative = (
-                        f"{user_name} is granted unrestricted full administrative privileges (*:*) via policy {pol_arn.split('/')[-1]}, "
-                        f"violating the principle of least privilege."
-                    )
+                    risk_score, breakdown = self.scorer.score_vector(features, base_exploit_triviality=0.95, base_reachability=0.98, base_blast_radius=0.98)
+                    narrative = f"{user_name} is granted unrestricted full administrative privileges (*:*) via policy {pol_arn.split('/')[-1]}, violating least privilege."
                     findings.append({
                         "finding_id": f"F-{finding_counter:03d}",
                         "type": "wildcard_overpermission",
@@ -362,11 +371,45 @@ class DetectionEngine:
                         "risk_score": risk_score,
                         "risk_breakdown": breakdown,
                         "narrative": narrative,
-                        "offending_statement": {
-                            "policy_arn": pol_arn,
-                            "action": "*",
-                            "resource": "*",
-                        },
+                        "offending_statement": {"policy_arn": pol_arn, "action": "*", "resource": res}
+                    })
+                    finding_counter += 1
+                elif service_wildcards:
+                    svc_act = service_wildcards[0]
+                    svc_name = svc_act.split(":")[0].upper()
+                    features = self.scorer.extract_features(
+                        principal_arn=arn, path=path, shortest_path_dist=2, downstream_nodes=8,
+                        actions_present=[svc_act], resources_present=["*"], has_conditions=False, is_cross_account=False
+                    )
+                    risk_score, breakdown = self.scorer.score_vector(features, base_exploit_triviality=0.75, base_reachability=0.90, base_blast_radius=0.85)
+                    narrative = f"{user_name} is granted unrestricted service-level wildcard {svc_act} on all resources (*), allowing full administrative control over {svc_name} service resources."
+                    findings.append({
+                        "finding_id": f"F-{finding_counter:03d}",
+                        "type": "wildcard_overpermission",
+                        "pattern_name": f"{svc_name} Service Wildcard ({svc_act}) Overpermission",
+                        "path": path,
+                        "risk_score": risk_score,
+                        "risk_breakdown": breakdown,
+                        "narrative": narrative,
+                        "offending_statement": {"policy_arn": pol_arn, "action": svc_act, "resource": res}
+                    })
+                    finding_counter += 1
+                elif is_read_only:
+                    features = self.scorer.extract_features(
+                        principal_arn=arn, path=path, shortest_path_dist=4, downstream_nodes=2,
+                        actions_present=actions, resources_present=["*"], has_conditions=True, is_cross_account=False
+                    )
+                    risk_score, breakdown = self.scorer.score_vector(features, base_exploit_triviality=0.20, base_reachability=0.30, base_blast_radius=0.25)
+                    narrative = f"{user_name} is granted read-only metadata enumeration and data access permissions on resources. Risk is low but resource scoping is recommended."
+                    findings.append({
+                        "finding_id": f"F-{finding_counter:03d}",
+                        "type": "wildcard_overpermission",
+                        "pattern_name": "Read-Only Data & Metadata Access",
+                        "path": path,
+                        "risk_score": risk_score,
+                        "risk_breakdown": breakdown,
+                        "narrative": narrative,
+                        "offending_statement": {"policy_arn": pol_arn, "action": ", ".join(actions), "resource": res}
                     })
                     finding_counter += 1
 
